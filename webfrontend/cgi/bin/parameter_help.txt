@@ -1,0 +1,18 @@
+Parameters are separated by space
+
+1. Parameter
+<Name>	Unique name to identify the response of the command. No whitespaces allowed
+status	Reserved word (function not defined yet)
+
+
+2. Parameter
+off	Nothing is returned
+rc	Sets the return code via HTTP to the Loxone Virtual Input named <Name>
+udp	Returns the full command result to Miniserver UDP port to seek for values
+rcudp	Sets the return code AND returns the result via UDP
+
+3. Parameter
+command	<command> The command is executed. Config parameter security_mode must be set to "authenticated" or "unsecure".
+macro <macroname> Calls the macro named <macroname>
+
+

@@ -1,0 +1,80 @@
+<center>
+<p>Hier kannst du grundlegende Einstellungen treffen.</p>
+<p><b>Das Webinterface ist noch nicht fertig! Bitte schau dir den <a href="http://www.loxwiki.eu:80/x/7wBmAQ">Wiki-Artikel</a> an.
+<form method="post" data-ajax="false" name="cti_form" id="cti_form" action="./index.cgi">
+<style>
+th, td {
+    padding: 10px;
+    // text-align: left;
+}
+</style>
+
+
+<table style="border-collapse:collapse;" border="0" width="80%">
+<tbody>
+<tr>
+<td>
+<fieldset data-role="controlgroup">
+	   	<legend>Sicherheitsmodus</legend>
+		<input type="radio" name="security-mode" id="security-mode-unsecure" value="UNSECURE" checked="checked" />
+     	<label for="security-mode-unsecure">UNSICHER (Commandline-Befehle)</label>
+<!--     	<input type="radio" name="security-mode" id="security-mode-restricted" value="RESTRICTED"  />
+     	<label for="security-mode-restricted">Eingeschränkt (nur Makros)</label> -->
+     	
+</fieldset>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<input type="hidden" name="save" value="save">
+<input type="submit" value="Einstellungen speichern">
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+</form> 
+
+<!-- <a id="btnlogs" data-role="button" href="/admin/system/tools/logfile.cgi?logfile=plugins/lbbackup/raspiBackup.log&header=html&format=template" target="_blank" data-inline="true" data-mini="true" data-icon="arrow-d">Logdatei &ouml;ffnen</a> -->
+
+
+</center>
+<script>
+
+<!-- // Get numbers of raspiBackup PIDs every 5 seconds and update submit button status -->
+<!-- setInterval(function() { -->
+  <!-- // method to be executed; -->
+<!-- getText('<TMPL_VAR NAME=CHECKPIDURL>', mycallback); //passing mycallback as a method   -->
+<!-- }, 5000); -->
+
+<!-- getText = function(url, callback) // How can I use this callback? -->
+<!-- { -->
+    <!-- var request = new XMLHttpRequest(); -->
+    <!-- request.onreadystatechange = function() -->
+    <!-- { -->
+        <!-- if (request.readyState == 4 && request.status == 200) -->
+        <!-- { -->
+            <!-- callback(request.responseText); // Another callback here -->
+        <!-- } -->
+    <!-- };  -->
+    <!-- request.open('GET', url); -->
+    <!-- request.send(); -->
+<!-- } -->
+
+<!-- function mycallback(data) { -->
+   <!-- // alert(data); -->
+   <!-- if (data != "0\n") -->
+	<!-- { $("#jit_submit").prop("disabled",true); -->
+	  <!-- $("#jit_submit").val("Backup läuft...").button("refresh"); -->
+	<!-- } -->
+	<!-- else { -->
+	  <!-- $("#jit_submit").prop("disabled",false); -->
+	  <!-- $("#jit_submit").val("Backup jetzt starten!").button("refresh"); -->
+	<!-- } -->
+<!-- } -->
+
+</script>

@@ -1,0 +1,95 @@
+#!/bin/bash
+
+# Will be executed as user "root".
+
+# Name this file "daemon" in your plugin-archive. It will be renamed to NAME
+# during installation
+
+loxberryhome=REPLACEINSTALLFOLDER
+pluginname=REPLACEFOLDERNAME
+
+# Directory/Pluginname fallback for test environment
+if [ ! -d $loxberryhome ]; then
+	loxberryhome=/opt/loxberry
+fi
+if [ ! -d $pluginname ]; then
+	pluginname=anyplugin
+fi
+
+if [ -x /usr/bin/logger ]; then
+    /usr/bin/logger "loxberry-plugin-$pluginname - DAEMON Script from Any Plugin"
+fi
+
+# Add Any-Plugin to sudoers (need root permission)
+# Sudoers V1
+sudoversion=1
+
+if [ ! -e $loxberryhome/config/plugins/$pluginname/sudoers.v$sudoversion ]
+	then
+		if [ -x /usr/bin/logger ]; then 
+			/usr/bin/logger "loxberry-plugin-$pluginname - Adding sudoers permissions"
+		fi
+		echo %loxberry ALL = NOPASSWD: $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/tcp2shell.sh >> /etc/sudoers.d/$pluginname
+		chmod 0440 /etc/sudoers.d/$pluginname
+		rm $loxberryhome/config/plugins/$pluginname/sudoers.*
+		echo Sudoers V1 > $loxberryhome/config/plugins/$pluginname/sudoers.v$sudoversion
+fi
+
+# Change permissions
+if [ -x /usr/bin/logger ]; then 
+	/usr/bin/logger "loxberry-plugin-$pluginname - Setting kill_tcp2shell +x permissions"
+fi
+chmod +x $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/kill_tcp2shell.sh
+chmod +x $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/kill_tcp2shell2.sh
+
+# Config file parsing (based on http://stackoverflow.com/a/20815951/3466839)
+configfile="$loxberryhome/config/plugins/$pluginname/anyplugin.cfg" # set the actual path name of your (DOS or Unix) config file
+if [ -e $configfile ]; then
+  mkdir /run/shm/$pluginname > /dev/null 2>&1
+  chown loxberry.loxberry /run/shm/$pluginname > /dev/null 2>&1
+  chmod a+w /run/shm/$pluginname > /dev/null 2>&1
+  shopt -s extglob
+  tr -d '\r' < $configfile > /run/shm/$pluginname/tempconfigfile.unix
+  while IFS='= ' read lhs rhs
+  do
+      if [[ ! $lhs =~ ^\ *# && -n $lhs ]]; then
+          rhs="${rhs%%\#*}"    # Del in line right comments
+          rhs="${rhs%%*( )}"   # Del trailing spaces
+          rhs="${rhs%\"*}"     # Del opening string quotes
+          rhs="${rhs#\"*}"     # Del closing string quotes
+          if [[ $lhs =~ ^\[ ]]; then # Set INI-like sections, e.g. [MAIN]
+            lhs="${lhs%\]*}"     # Del opening bracket
+            lhs="${lhs#\[*}"     # Del closing bracket
+            sec=$lhs
+          else
+            if [[ ! $lhs =~ ^\; ]]; then # Don't parse comments startet with ;
+              name="$sec$lhs"
+              declare ${name}="$rhs"
+              #echo "$name = $rhs" # for debugging only
+            fi
+          fi
+      fi
+  done < /run/shm/$pluginname/tempconfigfile.unix
+  rm /run/shm/$pluginname/tempconfigfile.unix > /dev/null 2>&1
+  # Config file parsing end
+fi
+
+# If runas is empty, set loxberry as user
+if [ -z "$Mainrunas" ]; then
+	Mainrunas = "loxberry"
+fi
+
+
+if [ -x /usr/bin/logger ]; then 
+	/usr/bin/logger "loxberry-plugin-$pluginname - Running tcp2shell with user $Mainrunas"
+fi
+
+# cd $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/
+
+# This is the old IPv4-Only code
+# su - $Mainrunas -c "$loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/tcp2shell.pl"
+
+# This is the new IPv4/v6 code
+su - $Mainrunas -c "$loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/tcp2shell2.pl"
+
+exit 0
