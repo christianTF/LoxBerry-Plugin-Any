@@ -17,7 +17,7 @@ if (-d "REPLACEINSTALLFOLDER/webfrontend/cgi/plugins/anyplugin/lib") {
 }
 
 # Version of this script
-our $version = "0.01";
+our $version = "0.02";
 
 # Christian Fenzl, christiantf@gmx.at 2017
 # This script is a TCP to Shell gateway. 
@@ -112,7 +112,11 @@ my $security = defined $cfg->param("Main.security_mode") ? uc $cfg->param("Main.
 my $authentication = !is_enabled($cfg->param("Main.authentication")) ? 0 : 1;
 my $restrict_subnet = is_enabled($cfg->param("Main.restrict_subnet")) ? 1 : 0;
 my @restricted_ips = $cfg->param("Main.allowed_remote_ips");
-print "Restricted IPs: " . join(", ", @restricted_ips);
+# print "Restricted IPs (" . scalar(@restricted_ips ) ."): " . join(", ", @restricted_ips);
+@restricted_ips = grep /\S/, @restricted_ips;
+print "Restricted IPs (" . scalar(@restricted_ips ) ."): " . join(", ", @restricted_ips) . "\n";
+
+
 
 
 if(! is_true($activated) && ! $option_activate) {	
