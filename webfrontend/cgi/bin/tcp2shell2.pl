@@ -26,13 +26,14 @@ our $version = "0.01";
 # - libswitch-perl
 # - libio-socket-timeout-perl
 
+##########################################################################
+# Modules
+##########################################################################
+
 use Basics;
 use strict;
 use warnings;
 
-##########################################################################
-# Modules
-##########################################################################
 
 # use FindBin;
 # use lib "$FindBin::RealBin/../perllib";
@@ -42,11 +43,14 @@ use Cwd 'abs_path';
 use File::HomeDir;
 use Getopt::Long qw(GetOptions);
 use HTML::Entities;
+use Net::Subnet;
 use IO::Select;
-#use IO::Socket;
+use IO::Socket;
 use IO::Socket::Timeout;
 use IO::Socket::IP;
-
+use IO::Interface qw(:flags);
+# use IO::Interface;
+use List::Util 1.33 'any';
 use LWP::UserAgent;
 use POSIX qw/ strftime /;
 use Switch;
@@ -106,6 +110,9 @@ my $udpport = $cfg->param("Main.udpport");
 my $tcpport = $cfg->param("Main.tcpport");
 my $security = defined $cfg->param("Main.security_mode") ? uc $cfg->param("Main.security_mode") : uc "restricted";
 my $authentication = !is_enabled($cfg->param("Main.authentication")) ? 0 : 1;
+my $restrict_subnet = is_enabled($cfg->param("Main.restrict_subnet")) ? 1 : 0;
+my @restricted_ips = $cfg->param("Main.allowed_remote_ips");
+print "Restricted IPs: " . join(", ", @restricted_ips);
 
 
 if(! is_true($activated) && ! $option_activate) {	
@@ -170,6 +177,9 @@ END
 
 sub start_listening 
 {
+	
+	# Determine own IP and subnets
+	
 	while (1)
 	{
 		# This is the handling of incoming TCP connections (Guests)
@@ -179,15 +189,28 @@ sub start_listening
 				if($guest == $tcpin_sock) {
 					# Create new incoming connection from guest
 					my $new = $tcpin_sock->accept;
-					$in_list->add($new);
-					print "New guest connection accepted\n";
+					
+					## Check restrictions
+					my $newremote = $new->peerhost();
+					print "NEWREMOTE: " . $newremote . "\n";
+					if ($restrict_subnet && !own_subnet($new, $newremote)) {
+						print STDERR "ERROR - Access denied. Quitting.\n";
+						close $new;
+					} elsif (@restricted_ips && !any { /$newremote/ } @restricted_ips ) {
+						print STDERR "ERROR - Access denied. Quitting.\n";
+						close $new;
+					} else {
+						print "New guest connection accepted from $newremote.\n";
+						$in_list->add($new);
+					}
+					
 				} else {
 					$guest->recv(my $guest_line, 1024);
 					my $guest_answer;
 					chomp $guest_line;
-					print "GUEST: $guest_line\n";
+					#print "GUEST: $guest_line\n";
 					my @guest_params = split(/ /, $guest_line);
-					print "GUEST_PARAMS[0]: $guest_params[0] \n";
+					# print "GUEST_PARAMS[0]: $guest_params[0] \n";
 					
 					## Get first parameter (<Name> or keyword)
 					my $rname_temp = $guest_params[0];
@@ -346,7 +369,7 @@ sub create_out_socket
 		
 	$socket = IO::Socket::IP->new( %params )
 		or die "Couldn't connect to $remotehost:$port : $@\n";
-	sleep (1);
+	sleep (1.5);
 	if ($socket->connected) {
 		print "Created $proto out socket to $remotehost on port $port\n";
 	} else {
@@ -416,4 +439,32 @@ sub to_ms
 	print "DEBUG: -->URL $url_nopass\n";
 	my $response = $ua->get($url);
 	return $response;
+}
+
+#####################################################
+# Check if remote host is in own subnet
+# Input: Socket, Remote IP
+# Output: 1/0 (true/false)
+#####################################################
+sub own_subnet
+{
+	my ($socket, $remoteadr) = @_;
+	my @subnets;
+	my @interfaces = $socket->if_list;
+	
+	foreach my $iface (@interfaces) {
+		#if (!$$socket->is_loopback($iface)) {
+		#	print $iface . "\n " . 
+		#	"addr = 	" . $socket->if_addr($iface) . "\n" .
+		#	"mask=		" . $socket->if_netmask($iface) . "\n";
+			push @subnets, $socket->if_addr($iface) . "/" . $socket->if_netmask($iface);
+		#}
+	}
+	# print "Subnets: " . join(", ", @subnets) . "\n";
+	my $is_rfc1918 = subnet_matcher @subnets;
+	my $isownsubnet = $is_rfc1918->($remoteadr);
+	# my $isownsubnet = $is_rfc1918->('192.168.1.222');
+	# print "$remoteadr is own subnet: " . $isownsubnet . "\n";
+	return $isownsubnet;
+	
 }
