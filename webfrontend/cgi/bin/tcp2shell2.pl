@@ -17,7 +17,7 @@ if (-d "REPLACEINSTALLFOLDER/webfrontend/cgi/plugins/anyplugin/lib") {
 }
 
 # Version of this script
-our $version = "0.02";
+our $version = "0.04";
 
 # Christian Fenzl, christiantf@gmx.at 2017
 # This script is a TCP to Shell gateway. 
@@ -72,7 +72,6 @@ print STDERR "Configdir:   $lbconfigdir\n";
 my $home = $lbhomedir;
 our $tcpin_sock;
 our $tcpout_sock;
-our $udpout_sock;
 our $in_list;
 our $out_list;
 my $sel;
@@ -136,31 +135,40 @@ our %miniservers = LoxBerry::System::get_miniservers();
 
 # This ist the host we are mirroring commands to the remote machine. Incoming commands from Loxone are mirrored to the remote machine.
 my $tcpin_port = $tcpport;
-# This is the host we mirror the TCP incoming messages to (usually the Miniserver)
-my $udpout_host = $miniservers{1}{IPAddress};
-my $udpout_port = $udpport;
 
 # Create sockets
 ## Listen to a guest TCP connection
 $tcpin_sock = create_in_socket($tcpin_sock, $tcpin_port, 'tcp');
 $in_list = IO::Select->new ($tcpin_sock);
 
-# Create a guest UDP stream
-$udpout_sock = create_out_socket($udpout_sock, $udpout_port, 'udp', $udpout_host);
-$udpout_sock->flush;
 
-our $answer; 
+our @udpout_sock;
+my @udpout_host;
+my @udpout_port;
+
+# Create UDP socket for each Miniserver
+for (my $msnr = 1 ; $msnr <= keys %miniservers; $msnr++) {
+
+	$udpout_host[$msnr] = $miniservers{$msnr}{IPAddress};
+	$udpout_port[$msnr] = $udpport;
+
+	# Create a guest UDP stream
+	$udpout_sock[$msnr] = create_out_socket($udpout_sock[$msnr], $udpout_port[$msnr], 'udp', $udpout_host[$msnr]);
+	$udpout_sock[$msnr]->flush;
+
+}
 
 
 # Now we are ready to listen and process
-
+our $answer; 
 our $guest;
 my $lastpoll = time;
-
+my $msnr;
+					
 start_listening();
 
 	close $tcpout_sock;
-	close $udpout_sock;
+	# close $udpout_sock;
 	close $tcpin_sock;
 # and terminate the connection when we're done
 
@@ -196,7 +204,11 @@ sub start_listening
 					
 					## Check restrictions
 					my $newremote = $new->peerhost();
+					(my $sec, my $min, my $hour, my $mday, my $mon, my $year, my $wday, my $yday, my $isdst) = localtime();
+					printf "--------- $year-$mon-$mday $hour:$min:$sec LOCAL TIME ------------\n";
+					
 					print "NEWREMOTE: " . $newremote . "\n";
+					
 					if ($restrict_subnet && !own_subnet($new, $newremote)) {
 						print STDERR "ERROR - Access denied. Quitting.\n";
 						close $new;
@@ -226,7 +238,8 @@ sub start_listening
 					}
 
 					## Get second parameter (return method)
-					my $rreturn = lc $guest_params[1];
+					my ($rreturn, $msnr) = split /\./, lc $guest_params[1], 2;
+					
 					switch ($rreturn) {
 						case 'off'	{ print "2. Parameter is off (nothing will be returned)\n"; }
 						case 'rc'	{ print "2. Parameter is rc (will return exit code)\n"; }
@@ -246,15 +259,23 @@ sub start_listening
 											$rcommand = undef;}
 					}
 				
+					## Check the Miniserver number
+					if (defined $msnr and ($msnr < 1 or $msnr > keys %miniservers))
+						{ print "ERROR: Given number of Miniserver does not exist - QUITTING guest\n";
+						  $rname = undef;
+					} else { $msnr = 1; 
+					}
+					$msnr > 0 ? print "Miniserver used is $msnr (" . $miniservers{$msnr}{Name} . ")\n" : "";
+					
 					## Decide what to do next
 					if (defined $rname) {
 						if ( $rcommand eq "command" ) 
 							{ print STDERR "Calling exec_command\n";
-							  exec_command($rname, $rreturn, @guest_params);
+							  exec_command($rname, $rreturn, $msnr, @guest_params);
 							}
 						elsif ( $rcommand eq "macro" )
 							{ print STDERR "Calling exec_macro $guest_params[3]\n";
-							  exec_macro($rname, $rreturn, $guest_params[3]);
+							  exec_macro($rname, $rreturn, $msnr, $guest_params[3]);
 							}
 						
 					} else { print STDERR "Doing nothing, client good bye!\n"; }
@@ -262,6 +283,7 @@ sub start_listening
 					$in_list->remove($guest);
 					$guest->close;
 					$guest_line = undef;
+					$msnr = undef;
 					
 				}
 			}
@@ -278,7 +300,7 @@ sub start_listening
 sub exec_command
 {
 	my $commandline;
-	my ($rname, $rreturn, @rline) = @_;
+	my ($rname, $rreturn, $msnr, @rline) = @_;
 	splice @rline, 0, 3;
 	
 	if ($security ne "UNSECURE") {
@@ -292,19 +314,19 @@ sub exec_command
 	rtrim($commandline);
 	print STDERR "exec_command Commandline: $commandline\n";
 	
-	executeCommandline($rname, $rreturn, $commandline);
+	executeCommandline($rname, $rreturn, $msnr, $commandline);
 	
 }
 
 #################################################################################
 # Run Commandline in shell
-# Params: $rname, $rreturn, $commandline
+# Params: $rname, $rreturn, $msnr, $commandline
 # Returns: -
 #################################################################################
 
 sub executeCommandline
 {
-  my ($rname, $rreturn, $commandline) = @_;
+  my ($rname, $rreturn, $msnr, $commandline) = @_;
   my $output;
   my $status;
   
@@ -317,16 +339,17 @@ sub executeCommandline
   # print STDERR "Name is $rname, return mode is $rreturn\n";
   
   # Send Return Code
-  if ($rreturn eq "rc" || $rreturn eq "rcudp") {
-	to_ms($rname, $status);
+  if (substr ($rreturn, 0, 2) eq 'rc' || substr ($rreturn, 0, 5) eq 'rcudp') {
+	to_ms($rname, $status, $msnr);
   }
   # Send Output by UDP
-  if ($rreturn eq "udp" || $rreturn eq "rcudp") {
+  if (substr ($rreturn, 0, 3) eq 'udp' || substr ($rreturn, 0, 5) eq 'rcudp') {
 	my $udp_output = 
 		"\"$rname\":" . 
 		"$output";
 	$udp_output = substr $udp_output, 0, 255;
-	print $udpout_sock $udp_output;
+	my $udp_out = $udpout_sock[$msnr];
+	print $udp_out $udp_output;
   }
   
 }
@@ -424,7 +447,9 @@ sub create_in_socket
 sub to_ms 
 {
 	
-	my ($label, $text) = @_;
+	my ($label, $text, $msnr) = @_;
+	
+	$msnr = defined $msnr ? $msnr : 1;
 	
 	# if (! $lms2udp_usehttpfortext) { return; }
 	
@@ -435,8 +460,8 @@ sub to_ms
 	my $labelenc = uri_escape( $label );
 	
 	
-	my $url = "http://" . $miniservers{1}{Credentials} . "@" . $miniservers{1}{IPAddress} . ":" . $miniservers{1}{Port} . "/dev/sps/io/$labelenc/$textenc";
-	my $url_nopass = "http:// " . $miniservers{1}{Admin} . ":*****\@" . $miniservers{1}{IPAddress} . ":" . $miniservers{1}{Port} . "/dev/sps/io/$labelenc/$textenc";
+	my $url = "http://" . $miniservers{$msnr}{Credentials} . "@" . $miniservers{$msnr}{IPAddress} . ":" . $miniservers{$msnr}{Port} . "/dev/sps/io/$labelenc/$textenc";
+	my $url_nopass = "http:// " . $miniservers{$msnr}{Admin} . ":*****\@" . $miniservers{$msnr}{IPAddress} . ":" . $miniservers{$msnr}{Port} . "/dev/sps/io/$labelenc/$textenc";
 	my $ua = LWP::UserAgent->new;
 	$ua->timeout(1);
 	print "DEBUG: #$label# #$text#\n";
