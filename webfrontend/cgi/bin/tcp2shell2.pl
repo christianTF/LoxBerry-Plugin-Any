@@ -200,7 +200,7 @@ sub start_listening
 			foreach $guest (@in_ready) {
 				if($guest == $tcpin_sock) {
 					# Create new incoming connection from guest
-					my $new = $tcpin_sock->accept;
+					my $new = $tcpin_sock->accept  or die "ERROR: It seems that this port is already occupied - Another instance running?\nQUITTING with error: $!\n";
 					
 					## Check restrictions
 					my $newremote = $new->peerhost();
