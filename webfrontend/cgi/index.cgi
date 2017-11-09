@@ -21,13 +21,15 @@ use lib "$FindBin::Bin/./perllib";
 use LoxBerry::System;
 use LoxBerry::Web;
 
+# Version of this script
+our $version = LoxBerry::System::pluginversion();
+
 use Switch;
 use CGI::Carp qw(fatalsToBrowser);
 use CGI qw/:standard/;
 use Config::Simple;
-# String::Escape needs to be installed!
-# use String::Escape qw( unquotemeta );
 use HTML::Template;
+use Scalar::Util qw( looks_like_number );
 use warnings;
 use strict;
 no strict "refs"; # we need it for template system and for contructs like ${"skalar".$i} in loops
@@ -43,7 +45,6 @@ our  $cgi = CGI->new;
 my  $pcfg;
 my  $lang;
 my  $languagefile;
-my  $version;
 my  $pname;
 my  $languagefileplugin;
 my  %TPhrases;
@@ -73,8 +74,6 @@ our @backuptypes = ('DD', 'RSYNC', 'TGZ');
 # Read Settings
 ##########################################################################
 
-# Version of this script
-$version = "0.11";
  my $datestring = localtime();
  print STDERR "========== LoxBerry Backup Version $version === ($datestring) =========\n";
  print STDERR "Global variables from LoxBerry::System\n";
@@ -101,32 +100,30 @@ $lang = lblanguage();
 ##########################################################################
 
 # Read plugin config 
-$pcfg 	= new Config::Simple("$lbconfigdir/anyplugin.cfg");
-if (! defined $pcfg) {
-	$pcfg = new Config::Simple(syntax=>'ini');
-	$pcfg->param("CONFIG.VERSION", $version);
-	$pcfg->write("$lbconfigdir/anyplugin.cfg");
-	$pcfg = new Config::Simple("$lbconfigdir/anyplugin.cfg");
-}
+# $pcfg 	= new Config::Simple("$lbconfigdir/anyplugin.cfg");
+# if (! defined $pcfg) {
+	# $pcfg = new Config::Simple(syntax=>'ini');
+	# $pcfg->param("CONFIG.VERSION", $version);
+	# $pcfg->write("$lbconfigdir/anyplugin.cfg");
+	# $pcfg = new Config::Simple("$lbconfigdir/anyplugin.cfg");
+# }
+# Config::Simple->import_from('app.ini', \%Config);
+
+my %pcfg;
+tie %pcfg, "Config::Simple", "$lbconfigdir/anyplugin.cfg";
+
 # Set default parameters
+my $pcfgchanged = 0;
+if (!defined $pcfg{'Main.activated'}) { $pcfg{'Main.activated'} = 1; $pcfgchanged = 1;}
+if (!defined $pcfg{'Main.ConfigVersion'}) { $pcfg{'Main.ConfigVersion'} = 1; $pcfgchanged = 1;}
+if (!defined $pcfg{'Main.security_mode'}) { $pcfg{'Main.security_mode'} = "unsecure"; $pcfgchanged = 1;}
+if (!defined $pcfg{'Main.authentication'}) { $pcfg{'Main.authentication'} = "off"; $pcfgchanged = 1;}
+if (!defined $pcfg{'Main.restrict_subnet'}) { $pcfg{'Main.restrict_subnet'} = "True"; $pcfgchanged = 1;}
+if (!defined $pcfg{'Main.runas'}) { $pcfg{'Main.runas'} = "root"; $pcfgchanged = 1;}
+if (!defined $pcfg{'Main.udpport'}) { $pcfg{'Main.udpport'} = "9096"; $pcfgchanged = 1;}
+if (!defined $pcfg{'Main.tcpport'}) { $pcfg{'Main.tcpport'} = "9095"; $pcfgchanged = 1;}
 
-# my $ddcron = defined $pcfg->param("DD.SCHEDULE") ? $pcfg->param("DD.SCHEDULE") : "off";
-# my $rsynccron = defined $pcfg->param("RSYNC.SCHEDULE") ? $pcfg->param("RSYNC.SCHEDULE") : "off";
-# my $tgzcron = defined $pcfg->param("TGZ.SCHEDULE") ? $pcfg->param("TGZ.SCHEDULE") : "off";
-
-# my $ddcron_retention = defined $pcfg->param("DD.RETENTION") ? $pcfg->param("DD.RETENTION") : "3";
-# my $rsynccron_retention = defined $pcfg->param("RSYNC.RETENTION") ? $pcfg->param("RSYNC.RETENTION") : "3";
-# my $tgzcron_retention = defined $pcfg->param("TGZ.RETENTION") ? $pcfg->param("TGZ.RETENTION") : "3";
-
-# my @stop_services_array = $pcfg->param("CONFIG.STOPSERVICES");
-# if (@stop_services_array) {
-	# $stop_services = join( "\r\n", @stop_services_array);
-# }  
-
-# my $email_notification = $pcfg->param("CONFIG.EMAIL_NOTIFICATION") ne "" ? $pcfg->param("CONFIG.EMAIL_NOTIFICATION") : "0";
-# my $fake_backup = is_enabled($pcfg->param("CONFIG.FAKE_BACKUP"));
-
-# $pcfg->write();
+if ($pcfgchanged = 1) {tied(%pcfg)->write();}
 
 
 ##########################################################################
@@ -138,23 +135,11 @@ if ($cgi->param("save")) {
 	&save;
 }
 
-# if ($cgi->param("jit_backup")) {
-	# # Data were posted - save 
-	# &jit_backup;
-# }
-
-#our $postdata = $cgi->param('ddcron');
-#print STDERR "POSTDATA:";
-#print STDERR Dumper($cgi);
-#print STDERR $postdata;
-
-
 ##########################################################################
 # Initialize html templates
 ##########################################################################
 
 # See http://www.perlmonks.org/?node_id=65642
-
 
 # Topmenu
 $topmenutemplate = HTML::Template->new(
@@ -171,21 +156,11 @@ $maintemplate = HTML::Template->new(
 	global_vars => 1,
 	loop_context_vars => 1,
 	die_on_bad_params => 0,
-	associate => $pcfg,
+	# associate => %pcfg,
 );
 
-# Activate Backup button in topmenu
+# Activate Settings button in topmenu
 $topmenutemplate->param( CLASS_INDEX => 'class="ui-btn-active ui-state-persist"');
-
-
-# Footer # At the moment not in HTML::Template format
-# $footertemplate = HTML::Template->new(
-	# filename => "$lbhomedir/templates/system/$lang/footer.html",
-	# die_on_bad_params => 0,
-	# associate => $cgi,
-# );
-
-
 
 ##########################################################################
 # Translations
@@ -217,86 +192,85 @@ while (my ($name, $value) = each %TPhrases){
 }
 
 ##########################################################################
-# Create some variables for the Template
+# Create variables for the Template
 ##########################################################################
 
-###
-# As an example: we create some vars for the template
-###
 $maintemplate->param( PLUGINNAME => 'Any Plugin for LoxBerry' );
 
-# my %labels = ( 
-	# 'off' => 'Aus',
-	# 'daily' => 'Taeglich',
-	# 'weekly' => 'Woechentlich',
-	# 'monthly' => 'Monatlich',
-	# 'yearly' => 'Jaehrlich',
-# );
+# Activated Checkbox
+my $activated = checkbox(-name => 'activated',
+								  -checked => is_enabled($pcfg{'Main.activated'}),
+									-value => 'True',
+									-label => 'Plugin aktiviert',
+								);
+$maintemplate->param( ACTIVATED => $activated);
 
-# #my %label_attributes = ('off'=>{'class'=>'
+# Textfield for TCP IN PORT
+my $tcpport = textfield(-name=>'tcpport',
+			   #-default=>'127.0.0.1',
+			   -value=>$pcfg{'Main.tcpport'},
+			   #-rows=>10,
+			   #-columns=>50,
+			   -size=>10,
+			   -maxlength=>5,
+			   );
+$maintemplate->param( TCPPORT => $tcpport);
 
-# my $dd_radio_group = radio_group(
-						# -name => 'ddcron',
-						# -values => ['off', 'daily', 'weekly', 'monthly', 'yearly'],
-						# -labels => \%labels,
-						# -default => $ddcron ,
-						# );
-# $maintemplate->param( DD_RADIO_GROUP => $dd_radio_group);
+# Textfield for UDP OUT PORT
+my $udpport = textfield(-name=>'udpport',
+			   #-default=>'127.0.0.1',
+			   -value=>$pcfg{'Main.udpport'},
+			   #-rows=>10,
+			   #-columns=>50,
+			   -size=>10,
+			   -maxlength=>5,
+			   );
+$maintemplate->param( UDPPORT => $udpport);
 
-# my $rsync_radio_group = radio_group(
-						# -name => 'rsynccron',
-						# -values => ['off', 'daily', 'weekly', 'monthly', 'yearly'],
-						# -labels => \%labels,
-						# -default => $rsynccron ,
-						# );
-# $maintemplate->param( RSYNC_RADIO_GROUP => $rsync_radio_group);
+# Security_mode radio buttons
+my $security_mode = radio_group(
+						-name => 'security_mode',
+						-values => ['unsecure', 'restricted'],
+						-labels => { 
+							'unsecure' => 'UNSICHER',
+							'restricted' => 'Eingeschränkt',
+							},
+						-default => $pcfg{'Main.security_mode'} ,
+						);
+$maintemplate->param( SECURITY_MODE => $security_mode);
 
-# my $tgz_radio_group = radio_group(
-						# -name => 'tgzcron',
-						# -values => ['off', 'daily', 'weekly', 'monthly', 'yearly'],
-						# -labels => \%labels,
-						# -default => $tgzcron ,
-						# );
+# Activated Checkbox
+my $authentication = checkbox(-name => 'authentication',
+								  -checked => is_enabled($pcfg{'Main.authentication'}),
+									-value => 'True',
+									-label => 'Authentifizierung aktiviert',
+								);
+$maintemplate->param( AUTHENTICATION => $authentication);
 
-# # my $tgz_radio_group = popup_menu(
-						# # -name => 'tgzcron',
-						# # -values => optgroup(-name => 'tgzcronoptgroup',
-											 # # -values=>['off', 'daily', 'weekly', 'monthly', 'yearly'],
-											 # # #-labels => \%labels
-									# # ),		 
-						
-						# # -default => $tgzcron ,
-						# # );
+# Restrict Subnet Checkbox
+my $restrict_subnet = checkbox(-name => 'restrict_subnet',
+								  -checked => is_enabled($pcfg{'Main.restrict_subnet'}),
+									-value => 'True',
+									-label => 'Auf eigenes Subnet einschränken',
+								);
+$maintemplate->param( RESTRICTED_SUBNET => $restrict_subnet);
 
-						
-						
-						
-# $maintemplate->param( TGZ_RADIO_GROUP => $tgz_radio_group);
+# Textfield for allowed remote IP's
+my $allowed_remote_ips = textfield(-name=>'allowed_remote_ips',
+			   #-default=>'127.0.0.1',
+			   -value=>$pcfg{'Main.allowed_remote_ips'},
+			   #-rows=>10,
+			   #-columns=>50,
+			   -size=>100,
+			   -maxlength=>200,
+			   -label=> 'Erlaubte IP-Adressen. Leer bedeutet, alle IPs dürfen verbinden.',
+			   );
+$maintemplate->param( ALLOWED_REMOTE_IPS => $allowed_remote_ips);
 
-# my $email_notification_html = checkbox(-name => 'email_notification',
-								  # -checked => $email_notification,
-									# -value => 1,
-									# -label => 'E-Mail Benachrichtigung',
-								# );
-# $maintemplate->param( EMAIL_NOTIFICATION => $email_notification_html);
-
-# my $fake_backup_html = checkbox(-name => 'fake_backup',
-  # -checked => $fake_backup,
-	# -value => 1,
-	# -label => 'FAKE Backup',
-# );
-# $maintemplate->param( FAKE_BACKUP => $fake_backup_html);
-									
-# $maintemplate->param( STOP_SERVICES => $stop_services);
-						
-# $maintemplate->param( CHECKPIDURL => "./grep_raspibackup.cgi");
-						
+					
 ##########################################################################
 # Print Template
 ##########################################################################
-
-# Header
-#print $headertemplate->output;
 
 # In LoxBerry V0.2.x we use the old LoxBerry::Web header
 LoxBerry::Web::lbheader("Any Plugin for LoxBerry", "http://www.loxwiki.eu:80/x/7wBmAQ");
@@ -306,9 +280,6 @@ print $topmenutemplate->output;
 
 # Main
 print $maintemplate->output;
-
-# Footer
-#print $footertemplate->output;
 
 # In LoxBerry V0.2.x we use the old LoxBerry::Web footer
 LoxBerry::Web::lbfooter();
@@ -320,287 +291,25 @@ exit;
 ##########################################################################
 sub save 
 {
-	# $ddcron = $cgi->param('ddcron');
-	# $rsynccron = $cgi->param('rsynccron');
-	# $tgzcron = $cgi->param('tgzcron');
-	
-	# $ddcron_retention = $cgi->param('ddcron_retention');
-	# $rsynccron_retention = $cgi->param('rsynccron_retention');
-	# $tgzcron_retention = $cgi->param('tgzcron_retention');
-	
-	# $email_notification = defined $cgi->param('email_notification') ? "1" : "0";
-	
-	# $stop_services = $cgi->param('stop_services');
-	
-	# $fake_backup = defined $cgi->param('fake_backup') ? "1" : "0";
-	
-	# # Write schedules to config if it appears in the possible schedule list
-	# my @schedules = qw ( off daily weekly monthly yearly );
-		
-	# if ( $ddcron ~~ @schedules ) {
-		# $pcfg->param("DD.SCHEDULE", $ddcron);
-	# } else {
-		# $ddcron = "off";
-		# $pcfg->param("DD.SCHEDULE", $ddcron);
-	# }
-	
-	# if ( $rsynccron ~~ @schedules ) {
-		# $pcfg->param("RSYNC.SCHEDULE", $rsynccron);
-	# } else {
-		# $rsynccron = "off";
-		# $pcfg->param("RSYNC.SCHEDULE", $rsynccron);
-	# }
-	# if ( $tgzcron ~~ @schedules ) {
-		# $pcfg->param("TGZ.SCHEDULE", $tgzcron);
-	# } else {
-		# $tgzcron = "off";
-		# $pcfg->param("TGZ.SCHEDULE", $tgzcron);
-	# }
-	
-	# # Write retentions if it is a number
-	# if ( $ddcron_retention =~ /^[0-9,.]+$/ ) {
-		# $pcfg->param("DD.RETENTION", $ddcron_retention);
-	# } else {
-		# $ddcron_retention = 3;
-		# $pcfg->param("DD.RETENTION", $ddcron_retention);
-	# }
-	# if ( $rsynccron_retention =~ /^[0-9,.]+$/ ) {
-		# $pcfg->param("RSYNC.RETENTION", $rsynccron_retention);
-	# } else {
-		# $rsynccron_retention = 3;
-		# $pcfg->param("RSYNC.RETENTION", $rsynccron_retention);
-	# }
-	# if ( $tgzcron_retention =~ /^[0-9,.]+$/ ) {
-		# $pcfg->param("TGZ.RETENTION", $tgzcron_retention);
-	# } else {
-		# $tgzcron_retention = 3;
-		# $pcfg->param("TGZ.RETENTION", $tgzcron_retention);
-	# }
-	
-	# $pcfg->param("CONFIG.EMAIL_NOTIFICATION", $email_notification);
-	# $pcfg->param("CONFIG.FAKE_BACKUP", $fake_backup);
-	
-	
-	# # Stop services
-	# print STDERR "\nSTOP SERVICES\n";
-	# my $stop_services_list = $stop_services;
-	# $stop_services_list =~ s/(\r?\n)+/,/g;
-	# $pcfg->param("CONFIG.STOPSERVICES", $stop_services_list);
-		
-	# $pcfg->write();
 
-	# # Unlink all cron jobs
+	# We import all variables to the R (=result) namespace
+	$cgi->import_names('R');
 	
-	# foreach my $currtype (@backuptypes) {
-		# print STDERR "Deleting cronjobs for ${lbplugindir}_$currtype\n";
-		# unlink ("$lbhomedir/system/cron/cron.daily/${lbplugindir}_$currtype");
-		# unlink ("$lbhomedir/system/cron/cron.weekly/${lbplugindir}_$currtype");
-		# unlink ("$lbhomedir/system/cron/cron.monthly/${lbplugindir}_$currtype");
-		# unlink ("$lbhomedir/system/cron/cron.yearly/${lbplugindir}_$currtype");
-	# }
+	# now we check each imported value and write it to the config
+	$pcfg{'Main.activated'} = defined $R::activated and is_enabled($R::activated) ? "1" : "0";
+	$pcfg{'Main.restrict_subnet'} = defined $R::restrict_subnet and is_enabled($R::restrict_subnet) ? "true" : "false";
+	$pcfg{'Main.authentication'} = defined $R::authentication and is_enabled($R::authentication) ? "on" : "off";
 	
-	# ### Create new cronjobs
-	# # Create start/stop options for services
-	# my @stop_services_array = $pcfg->param("CONFIG.STOPSERVICES");
-	# # Remove empty elements
-	# @stop_services_array = grep /\S/, @stop_services_array;
 	
-	# foreach my $service (@stop_services_array) {
-		# $service = trim($service);
-		# if ($service ne "") {
-			# $par_stopservices .= "service $service stop &&";
-			# $par_startservices .= "service $service start &&";
-		# }
-	# }
-	# # Remove trailing &&'s, or write : if empty
-	# $par_stopservices = $par_stopservices ne "" ? substr ($par_stopservices, 0, -3) : ":";
-	# $par_startservices = $par_startservices ne "" ? substr ($par_startservices, 0, -3) : ":";
+	if (defined $R::udpport and looks_like_number($R::udpport)) { $pcfg{'Main.udpport'} = $R::udpport;}
+	if (defined $R::tcpport and looks_like_number($R::tcpport)) { $pcfg{'Main.tcpport'} = $R::tcpport;}
+	$pcfg{'Main.allowed_remote_ips'} =  $R::allowed_remote_ips;
 	
-	# $mail_params = email_params();
+	if ( grep $_ == $R::security_mode, ('unsecure', 'restricted') ) { $pcfg{'Main.security_mode'} = $R::security_mode;}
+	if ( grep $_ == $R::security_mode, ('unsecure', 'restricted') ) { $pcfg{'Main.security_mode'} = $R::security_mode;}
 	
-	# get_raspibackup_command();
-
-	# if ($ddcron ne "off") {
-		# my $filename = "$lbhomedir/system/cron/cron.$ddcron/${lbplugindir}_DD";
-		# unless(open FILE, '>'.$filename) {
-			# $errormsg = "Cron job for DD backup - Cannot create file $filename";
-			# print STDERR "$errormsg\n";
-		# }
-		# print FILE "#!/bin/bash\n";
-		# print FILE "cd $lblogdir\n";
-		# print FILE $dd_backup_command;
-		# close FILE;
-		# chmod 0775, $filename;
-	# }
-		
-	# if ($tgzcron ne "off") {
-		# my $filename = "$lbhomedir/system/cron/cron.$tgzcron/${lbplugindir}_TGZ";
-		# unless(open FILE, '>'.$filename) {
-			# $errormsg = "Cron job for TGZ backup - Cannot create file $filename";
-			# print STDERR "$errormsg\n";
-		# }
-		# print FILE "#!/bin/bash\n";
-		# print FILE "cd $lblogdir\n";
-		# print FILE $tgz_backup_command;
-		# close FILE;
-		# chmod 0775, $filename;
-	# }
-	
-	# if ($rsynccron ne "off") {
-		# my $filename = "$lbhomedir/system/cron/cron.$rsynccron/${lbplugindir}_RSYNC";
-		# unless(open FILE, '>'.$filename) {
-			# $errormsg = "Cron job for RSYNC backup - Cannot create file $filename";
-			# print STDERR "$errormsg\n";
-		# }
-		# print FILE "#!/bin/bash\n";
-		# print FILE "cd $lblogdir\n";
-		# print FILE $rsync_backup_command;
-		# close FILE;
-		# chmod 0775, $filename;
-	# }
+	tied(%pcfg)->write();
+	return;
 	
 }
-##########################################################################
-# Just-In-Time Backup
-##########################################################################
-sub jit_backup
-{
-	# my $datestring = localtime();
-	# print STDERR "==== JIT-Backup started! == ($datestring) ==\n";
-	
-	# my $backuptype = $cgi->param('jit-backup-type');
-	
-	# ## Email notification
-	# my $email_notification = defined $pcfg->param('email_notification') ? "1" : "0";
-	# my $email_params = email_params();
 
-	# ## Create start/stop options for services
-	# my @stop_services_array = $pcfg->param("CONFIG.STOPSERVICES");
-	# # Remove empty elements
-	# @stop_services_array = grep /\S/, @stop_services_array;
-	# foreach my $service (@stop_services_array) {
-		# $service = trim($service);
-		# if ($service ne "") {
-			# $par_stopservices .= "service $service stop &&";
-			# $par_startservices .= "service $service start &&";
-		# }
-	# }
-	# # Remove trailing &&'s, or write : if empty
-	# $par_stopservices = $par_stopservices ne "" ? substr ($par_stopservices, 0, -3) : ":";
-	# $par_startservices = $par_startservices ne "" ? substr ($par_startservices, 0, -3) : ":";
-
-	# ## Get the highest retention number
-	# my $jit_retention;
-	# $jit_retention = $ddcron_retention > $rsynccron_retention ? $ddcron_retention : $rsynccron_retention;
-	# $jit_retention = $jit_retention > $tgzcron_retention ? $jit_retention : $tgzcron_retention;
-	# print STDERR "JIT Retention number (max) was identified as $jit_retention.\n";
-
-	# get_raspibackup_command();
-	
-	# my $filename = "$lbdatadir/jit_backup";
-	# unless(open FILE, '>'.$filename) {
-		# $errormsg = "Cron job for $backuptype backup - Cannot create file $filename";
-		# print STDERR "$errormsg\n";
-	# }
-	# print FILE "#!/bin/bash\n";
-	# print FILE "cd $lblogdir\n";
-	# if ($backuptype eq "DD") { print FILE $dd_backup_command; }
-	# elsif ($backuptype eq "TGZ") { print FILE $tgz_backup_command; }
-	# elsif ($backuptype eq "RSYNC") { print FILE $rsync_backup_command; }
-	# close FILE;
-	# chmod 0775, $filename;
-	
-	# my $pid = fork();
-	# die "Fork failed: $!" if !defined $pid;
-	# if ($pid == 0) {
-			 # # do this in the child
-			 # print STDERR "---> Backup process forked.\n";
-			 # open STDIN, "</dev/null";
-			 # open STDOUT, ">/dev/null";
-			 # open STDERR, ">/dev/null";
-			 # if (system("$filename &") == 0) {
-			 # print STDERR "---> Backup command started.";
-			 # } else {
-			 # print STDERR "---> Backup command returned ERROR.";
-			 # };
-	# }
-	# return;
-}
-
-# # -----------------------------------------------------------
-# # Generate E-Mail Options
-# # -----------------------------------------------------------
-# sub email_params
-# {
-	# my $mailadr = "";
-	# my $mail_params = "";
-	
-	# print STDERR "Checking E-Mail notification...";
-	# if ($email_notification eq "1") {
-			# print STDERR "Mail Notification is enabled.\n";
-			# my $mailcfg = new Config::Simple("$lbhomedir/config/system/mail.cfg");
-			# unless($mailadr = $mailcfg->param("SMTP.EMAIL"))
-			# { 		
-			# print STDERR "Error reading mail configuration in $lbhomedir/config/system/mail.cfg\n";
-			# $mailadr = undef;
-			# }
-			# print STDERR ($mailadr ne "" ? "Mail Address is $mailadr\n" : "Mail notification disabled\n");
-	# }
-	# $mail_params = $mailadr ne "" ? "-e $mailadr " : "";
-	# return $mail_params;
-# }
-
-
-# # -----------------------------------------------------------
-# # Generate raspiBackup commandline
-# # -----------------------------------------------------------
-# sub get_raspibackup_command
-# {
-    # my $fake_backup_params;
-	# if (is_enabled($fake_backup)) { 
-		# print STDERR "FAKE Backup is enabled.\n";
-		# $fake_backup_params = "-F ";
-	# }
-	# # DD
-	# $dd_backup_command = 
-		# "sudo raspiBackup.sh " .
-		# $fake_backup_params . 
-		# "-N \"fstab disk temp\" " . 
-		# "-o \"$par_stopservices\" " .
-		# "-a \"$par_startservices\" " .
-		# $mail_params .
-		# "-k $ddcron_retention " .
-		# "-t ddz " .
-		# "-L current " .
-		# "/backup\n";
-	# print STDERR "DD backup command: " . $dd_backup_command;
-		
-	# # TGZ
-	# $tgz_backup_command = 
-		# "sudo raspiBackup.sh " .
-		# $fake_backup_params . 
-		# "-N \"fstab disk temp\" " . 
-		# "-o \"$par_stopservices\" " .
-		# "-a \"$par_startservices\" " .
-		# $mail_params .
-		# "-k $tgzcron_retention " .
-		# "-t tgz " .
-		# "-L current " .
-		# "/backup\n";
-	# print STDERR "TGZ backup command: " . $tgz_backup_command;
-	
-	# # rsync
-	# $rsync_backup_command = 
-		# "sudo raspiBackup.sh " .
-		# $fake_backup_params . 
-		# "-N \"fstab disk temp\" " . 
-		# "-o \"$par_stopservices\" " .
-		# "-a \"$par_startservices\" " .
-		# $mail_params .
-		# "-k $rsynccron_retention " .
-		# "-t rsync " .
-		# "-L current " .
-		# "/backup\n";
-	# print STDERR "RSYNC backup command: " . $rsync_backup_command;
-
-# }

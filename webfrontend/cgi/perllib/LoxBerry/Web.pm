@@ -1,4 +1,4 @@
-our $VERSION = "0.23_02"; 
+our $VERSION = "0.23_03";
 $VERSION = eval $VERSION;
 # Please change version number (numbering after underscore) on EVERY change - keep it two-digits as recommended in perlmodstyle
 # Major.Minor represents LoxBerry version (e.g. 0.23 = LoxBerry V0.2.3)
@@ -73,15 +73,7 @@ sub lbheader
 	our $helplink = $helpurl ? $helpurl : $main::helplink;
 	
 	my $templatepath;
-	my $lang = lblanguage();
-
-	if (! (defined $main::template_title) && (defined $pagetitle)) {
-		our $template_title = $pagetitle;
-	}
 	
-	if (! (defined $main::helplink) && (defined $helpurl)) {
-		our $helplink = $helpurl;
-	}
 	
 	if (! defined $main::helptext) {
 		if (-e "$LoxBerry::System::lbtemplatedir/$lang/$helptemplate") {
@@ -102,10 +94,10 @@ sub lbheader
 				}
 				close(F);
 			} else {
-			carp ("Help template $templatepath could not be opened - continuing without help.\n");
+			Carp::carp ("Help template $templatepath could not be opened - continuing without help.\n");
 			}
 		} else {
-			carp ("Help template $templatepath could not be found - continuing without help.\n");
+			Carp::carp ("Help template $templatepath could not be found - continuing without help.\n");
 		}
 		
 		if (! $templatetext) {
@@ -157,7 +149,7 @@ sub lbfooter
 		}
 		close(F);
 	} else {
-		carp ("Failed to open template system/$lang/footer.html\n");
+		Carp::carp ("Failed to open template system/$lang/footer.html\n");
 	}
 }
 
@@ -184,6 +176,8 @@ sub get_plugin_icon
 	}
 	return undef;
 }
+
+
 
 
 #####################################################

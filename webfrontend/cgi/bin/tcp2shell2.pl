@@ -17,7 +17,7 @@ if (-d "REPLACEINSTALLFOLDER/webfrontend/cgi/plugins/anyplugin/lib") {
 }
 
 # Version of this script
-our $version = "0.04";
+our $version = LoxBerry::System::pluginversion();
 
 # Christian Fenzl, christiantf@gmx.at 2017
 # This script is a TCP to Shell gateway. 
@@ -58,15 +58,17 @@ use Time::HiRes qw(usleep);
 use URI::Escape;
 # use TCPUDP;
 
+
+print STDERR "### Any-Plugin V$version ###\n";
 print STDERR "Global variables from LoxBerry::System\n";
 print STDERR "Homedir:     $lbhomedir\n";
 print STDERR "Plugindir:   $lbplugindir\n";
 print STDERR "CGIdir:      $lbcgidir\n";
-print STDERR "HTMLdir:     $lbhtmldir\n";
-print STDERR "Templatedir: $lbtemplatedir\n";
-print STDERR "Datadir:     $lbdatadir\n";
-print STDERR "Logdir:      $lblogdir\n";
-print STDERR "Configdir:   $lbconfigdir\n";
+#print STDERR "HTMLdir:     $lbhtmldir\n";
+#print STDERR "Templatedir: $lbtemplatedir\n";
+#print STDERR "Datadir:     $lbdatadir\n";
+#print STDERR "Logdir:      $lblogdir\n";
+#print STDERR "Configdir:   $lbconfigdir\n";
 
 
 my $home = $lbhomedir;

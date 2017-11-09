@@ -1,9 +1,8 @@
-our $VERSION = "0.23_02";
-$VERSION = eval $VERSION; 
+our $VERSION = "0.23_04";
+$VERSION = eval $VERSION;
 # Please increment version number (numbering after underscore) on EVERY change - keep it two-digits as recommended in perlmodstyle
 # Major.Minor represents LoxBerry version (e.g. 0.23 = LoxBerry V0.2.3)
 
-use Carp;
 use strict;
 use Config::Simple;
 use File::HomeDir;
@@ -11,6 +10,7 @@ use URI::Escape;
 use Cwd 'abs_path';
 use LWP::UserAgent;
 use XML::Simple;
+use Carp;
 
 
 package LoxBerry::System;
@@ -110,6 +110,9 @@ if ($ENV{LBHOMEDIR}) {
 	my $username = $ENV{LOGNAME} || $ENV{USER} || getpwuid($<);
 	if ($username eq 'loxberry') {
 		$lbhomedir = File::HomeDir->my_home;
+	} elsif ($username eq 'root') {
+		$lbhomedir = `su - loxberry -c pwd`;
+		$lbhomedir =~ s/\n|\s+//;
 	} else {
 		# Missing some additional functions if we are running from daemon or cron
 		$lbhomedir = '/opt/loxberry';
@@ -130,6 +133,7 @@ our $lbconfigdir = "$lbhomedir/config/plugins/$lbplugindir";
 my %miniservers;
 my %binaries;
 my $lbtimezone;
+my $pluginversion;
 
 # Finished everytime code execution
 ##################################################################
@@ -305,6 +309,53 @@ sub get_binaries
 	}
 	return undef;
 }
+
+##################################################################################
+# Get Plugin Version
+# Returns plugin version from plugindatabase
+##################################################################################
+sub pluginversion
+{
+
+	if ($pluginversion) {
+		# print STDERR "Returning already fetched version\n";
+		return $pluginversion;
+	} 
+	if (!-e "$lbhomedir/data/system/plugindatabase.dat") {
+		Carp::carp "LoxBerry::System::pluginversion: Could not find $lbhomedir/data/system/plugindatabase.dat\n";
+		return undef;
+	}
+
+	# Read Plugin database copied from plugininstall.pl
+	my $openerr;
+	open(F,"<", "$lbhomedir/data/system/plugindatabase.dat") or ($openerr = 1);
+    if ($openerr) {
+		Carp::carp "LoxBerry::System::pluginversion: Error opening $lbhomedir/data/system/plugindatabase.dat\n";
+		return undef;
+		}
+    
+	my @data = <F>;
+    seek(F,0,0);
+    truncate(F,0);
+    foreach (@data){
+		s/[\n\r]//g;
+		# Comments
+		if ($_ =~ /^\s*#.*/) {
+			next;
+		}
+		my @fields = split(/\|/);
+		# print STDERR "Fields: 0:" . $fields[0] . " 1:" . $fields[1] . " 2:" . $fields[2] . " 3:" . $fields[3] . " 4:" . $fields[4] . " 5:" . $fields[5] . " 6:" . $fields[6] . "\n";
+		
+		if ($fields[5] eq $lbplugindir) {
+			$pluginversion = $fields[3];
+			close F;
+			return $pluginversion;
+		}
+	}
+	return undef;
+}
+
+
 
 ##################################################################
 # Read general.cfg
