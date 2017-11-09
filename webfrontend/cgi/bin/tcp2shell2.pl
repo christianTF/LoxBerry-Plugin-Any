@@ -255,6 +255,7 @@ sub start_listening
 					switch ($rcommand) {
 						case 'command'	{ print "3. Parameter is command (will run following command)\n"; }
 						case 'macro'	{ print "3. Parameter is macro (will run macro $guest_params[3])\n"; }
+						case 'ping'		{ print "3. Parameter is ping (will return Linux epoch time)\n"; }
 						else			{ print "3. Parameter is undefined - QUITTING guest\n";
 											$rcommand = undef;}
 					}
@@ -277,6 +278,11 @@ sub start_listening
 							{ print STDERR "Calling exec_macro $guest_params[3]\n";
 							  exec_macro($rname, $rreturn, $msnr, $guest_params[3]);
 							}
+						elsif ( $rcommand eq "ping" )
+							{ print STDERR "Calling ping\n";
+							  exec_ping($rname, $rreturn, $msnr);
+							}
+						
 						
 					} else { print STDERR "Doing nothing, client good bye!\n"; }
 					
@@ -317,6 +323,29 @@ sub exec_command
 	executeCommandline($rname, $rreturn, $msnr, $commandline);
 	
 }
+
+
+#####################################################################################
+
+sub exec_ping
+{
+	my ($rname, $rreturn, $msnr) = @_;
+	
+	# Send epoch as Return Code
+  if (substr ($rreturn, 0, 2) eq 'rc' || substr ($rreturn, 0, 5) eq 'rcudp') {
+	to_ms($rname, time, $msnr);
+  }
+  # Send epoch by UDP
+  if (substr ($rreturn, 0, 3) eq 'udp' || substr ($rreturn, 0, 5) eq 'rcudp') {
+	my $udp_output = 
+		"\"$rname\":" . time;
+	$udp_output = substr $udp_output, 0, 255;
+	my $udp_out = $udpout_sock[$msnr];
+	print $udp_out $udp_output;
+  }
+	
+}
+
 
 #################################################################################
 # Run Commandline in shell
