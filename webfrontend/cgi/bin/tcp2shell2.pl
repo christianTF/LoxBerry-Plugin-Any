@@ -147,14 +147,14 @@ my @udpout_host;
 my @udpout_port;
 
 # Create UDP socket for each Miniserver
-for (my $msnr = 1 ; $msnr <= keys %miniservers; $msnr++) {
+for (my $msnrs = 1 ; $msnrs <= keys %miniservers; $msnrs++) {
 
-	$udpout_host[$msnr] = $miniservers{$msnr}{IPAddress};
-	$udpout_port[$msnr] = $udpport;
+	$udpout_host[$msnrs] = $miniservers{$msnrs}{IPAddress};
+	$udpout_port[$msnrs] = $udpport;
 
 	# Create a guest UDP stream
-	$udpout_sock[$msnr] = create_out_socket($udpout_sock[$msnr], $udpout_port[$msnr], 'udp', $udpout_host[$msnr]);
-	$udpout_sock[$msnr]->flush;
+	$udpout_sock[$msnrs] = create_out_socket($udpout_sock[$msnrs], $udpout_port[$msnrs], 'udp', $udpout_host[$msnrs]);
+	$udpout_sock[$msnrs]->flush;
 
 }
 
@@ -163,7 +163,7 @@ for (my $msnr = 1 ; $msnr <= keys %miniservers; $msnr++) {
 our $answer; 
 our $guest;
 my $lastpoll = time;
-my $msnr;
+# my $msnr;
 					
 start_listening();
 
@@ -223,6 +223,7 @@ sub start_listening
 				} else {
 					$guest->recv(my $guest_line, 1024);
 					my $guest_answer;
+					# my $msnr;
 					chomp $guest_line;
 					#print "GUEST: $guest_line\n";
 					my @guest_params = split(/ /, $guest_line);
@@ -261,12 +262,17 @@ sub start_listening
 					}
 				
 					## Check the Miniserver number
-					if (defined $msnr and ($msnr < 1 or $msnr > keys %miniservers))
-						{ print "ERROR: Given number of Miniserver does not exist - QUITTING guest\n";
-						  $rname = undef;
-					} else { $msnr = 1; 
+					if (! defined $msnr) { 
+						print "Setting to msnr=1 (was: #$msnr#)\n";
+						$msnr = 1; 
 					}
-					$msnr > 0 ? print "Miniserver used is $msnr (" . $miniservers{$msnr}{Name} . ")\n" : "";
+					if ($msnr lt 1 or $msnr gt keys %miniservers)
+						{ print "ERROR: Given number of Miniserver ($msnr) does not exist - QUITTING guest\n";
+						  $rname = undef;
+						  $msnr = undef;
+					}
+					
+					if (defined $msnr and $msnr gt 0) { print "Miniserver used is $msnr (" . $miniservers{$msnr}{Name} . ")\n";}
 					
 					## Decide what to do next
 					if (defined $rname) {
@@ -286,10 +292,12 @@ sub start_listening
 						
 					} else { print STDERR "Doing nothing, client good bye!\n"; }
 					
+					$msnr = undef;
+					$guest_line = undef;
 					$in_list->remove($guest);
 					$guest->close;
-					$guest_line = undef;
-					$msnr = undef;
+					
+					
 					
 				}
 			}
@@ -329,18 +337,18 @@ sub exec_command
 
 sub exec_ping
 {
-	my ($rname, $rreturn, $msnr) = @_;
+	my ($rname, $rreturn, $msnumber) = @_;
 	
 	# Send epoch as Return Code
   if (substr ($rreturn, 0, 2) eq 'rc' || substr ($rreturn, 0, 5) eq 'rcudp') {
-	to_ms($rname, time, $msnr);
+	to_ms($rname, time, $msnumber);
   }
   # Send epoch by UDP
   if (substr ($rreturn, 0, 3) eq 'udp' || substr ($rreturn, 0, 5) eq 'rcudp') {
 	my $udp_output = 
 		"\"$rname\":" . time;
 	$udp_output = substr $udp_output, 0, 255;
-	my $udp_out = $udpout_sock[$msnr];
+	my $udp_out = $udpout_sock[$msnumber];
 	print $udp_out $udp_output;
   }
 	
@@ -355,7 +363,7 @@ sub exec_ping
 
 sub executeCommandline
 {
-  my ($rname, $rreturn, $msnr, $commandline) = @_;
+  my ($rname, $rreturn, $msnumber, $commandline) = @_;
   my $output;
   my $status;
   
@@ -369,7 +377,7 @@ sub executeCommandline
   
   # Send Return Code
   if (substr ($rreturn, 0, 2) eq 'rc' || substr ($rreturn, 0, 5) eq 'rcudp') {
-	to_ms($rname, $status, $msnr);
+	to_ms($rname, $status, $msnumber);
   }
   # Send Output by UDP
   if (substr ($rreturn, 0, 3) eq 'udp' || substr ($rreturn, 0, 5) eq 'rcudp') {
@@ -377,7 +385,7 @@ sub executeCommandline
 		"\"$rname\":" . 
 		"$output";
 	$udp_output = substr $udp_output, 0, 255;
-	my $udp_out = $udpout_sock[$msnr];
+	my $udp_out = $udpout_sock[$msnumber];
 	print $udp_out $udp_output;
   }
   
@@ -458,7 +466,7 @@ sub create_in_socket
 		Blocking   => 0
 	);
 	$socket = new IO::Socket::IP ( %params );
-	die "cannot create socket $!\n" unless $socket;
+	die "cannot create socket - Already in use?\nERROR is: $!\n" unless $socket;
 	# In some OS blocking mode must be expricitely disabled
 	IO::Handle::blocking($socket, 0);
 	print "server waiting for $proto client connection on port $port\n";
@@ -476,9 +484,9 @@ sub create_in_socket
 sub to_ms 
 {
 	
-	my ($label, $text, $msnr) = @_;
+	my ($label, $text, $msnumber) = @_;
 	
-	$msnr = defined $msnr ? $msnr : 1;
+	$msnumber = defined $msnumber ? $msnumber : 1;
 	
 	# if (! $lms2udp_usehttpfortext) { return; }
 	
@@ -489,8 +497,8 @@ sub to_ms
 	my $labelenc = uri_escape( $label );
 	
 	
-	my $url = "http://" . $miniservers{$msnr}{Credentials} . "@" . $miniservers{$msnr}{IPAddress} . ":" . $miniservers{$msnr}{Port} . "/dev/sps/io/$labelenc/$textenc";
-	my $url_nopass = "http:// " . $miniservers{$msnr}{Admin} . ":*****\@" . $miniservers{$msnr}{IPAddress} . ":" . $miniservers{$msnr}{Port} . "/dev/sps/io/$labelenc/$textenc";
+	my $url = "http://" . $miniservers{$msnumber}{Credentials} . "@" . $miniservers{$msnumber}{IPAddress} . ":" . $miniservers{$msnumber}{Port} . "/dev/sps/io/$labelenc/$textenc";
+	my $url_nopass = "http:// " . $miniservers{$msnumber}{Admin} . ":*****\@" . $miniservers{$msnumber}{IPAddress} . ":" . $miniservers{$msnumber}{Port} . "/dev/sps/io/$labelenc/$textenc";
 	my $ua = LWP::UserAgent->new;
 	$ua->timeout(1);
 	print "DEBUG: #$label# #$text#\n";
