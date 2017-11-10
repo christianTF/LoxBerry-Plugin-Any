@@ -82,6 +82,5 @@ fi
 # cd $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/
 
 # This is the new IPv4/v6 code
-sudo -b -n -u $Mainrunas -- $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/tcp2shell2.pl
-
+sudo -n -u $Mainrunas -- $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/tcp2shell2.pl >>$loxberryhome/log/plugins/$pluginname/tcp2shell.log 2>&1 &
 exit 0

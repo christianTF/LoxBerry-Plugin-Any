@@ -68,6 +68,6 @@ fi
 
 if [ $Mainactivated == 1 ]; then
 	echo "$pluginname activated. Running command..."
-	sudo -n -u $Mainrunas -- $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/tcp2shell2.pl &
+	sudo -n -u $Mainrunas -- $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/tcp2shell2.pl >>$loxberryhome/log/plugins/$pluginname/tcp2shell.log 2>&1 &
 	# $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/tcp2shell2.pl & 1> /dev/null 2> $loxberryhome/log/plugins/$pluginname/tcp2shell.log
 fi
