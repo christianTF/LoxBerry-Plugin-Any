@@ -1,12 +1,8 @@
 #!/bin/bash
 
-# Will be executed as user "root".
-
-# Name this file "daemon" in your plugin-archive. It will be renamed to NAME
-# during installation
-
 loxberryhome=REPLACEINSTALLFOLDER
 pluginname=REPLACEFOLDERNAME
+PIDFILES=/run/shm/tcp2shell.*
 
 # Directory/Pluginname fallback for test environment
 if [ ! -d $loxberryhome ]; then
@@ -16,29 +12,22 @@ if [ ! -d $pluginname ]; then
 	pluginname=anyplugin
 fi
 
-/usr/bin/logger "loxberry-plugin-$pluginname - DAEMON Script from Any Plugin"
+# Stop running processes
+# if [ -e  $PIDFILES ] 
+# then
+	# for file in $PIDFILES
+	# do
+		# extension="${file##*.}"
+		# echo "Processing PID $extension"
+		# /bin/kill -SIGTERM $extension
+	# done
+# fi
 
-	
-# Add Any-Plugin to sudoers (need root permission)
-# Sudoers V2
-sudoversion=2
+echo "Running killall..."
+sudo killall -e tcp2shell2.pl
 
-if [ ! -e $loxberryhome/config/plugins/$pluginname/sudoers.v$sudoversion ]
-	then
-		/usr/bin/logger "loxberry-plugin-$pluginname - Adding sudoers permissions V$sudoversion"
-		echo %loxberry ALL = NOPASSWD: $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/tcp2shell2.pl > /etc/sudoers.d/$pluginname
-		echo %loxberry ALL = NOPASSWD: $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/restart_tcp2shell.sh >> /etc/sudoers.d/$pluginname
-		echo %loxberry ALL = NOPASSWD: /usr/bin/killall >> /etc/sudoers.d/$pluginname
-		chmod 0440 /etc/sudoers.d/$pluginname
-		rm $loxberryhome/config/plugins/$pluginname/sudoers.*
-		echo Sudoers V$sudoversion > $loxberryhome/config/plugins/$pluginname/sudoers.v$sudoversion
-fi
-
-# Change permissions
-if [ ! -x "$loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/kill_tcp2shell2.sh" ]; then
-	/usr/bin/logger "loxberry-plugin-$pluginname - Setting kill_tcp2shell +x permissions"
-	chmod +x $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/restart_tcp2shell.sh
-fi
+echo "Cleanup remaining pidfiles"
+rm -f $PIDFILES
 
 # Config file parsing (based on http://stackoverflow.com/a/20815951/3466839)
 configfile="$loxberryhome/config/plugins/$pluginname/anyplugin.cfg" # set the actual path name of your (DOS or Unix) config file
@@ -77,11 +66,8 @@ if [ -z "$Mainrunas" ]; then
 	Mainrunas = "root"
 fi
 
-/usr/bin/logger "loxberry-plugin-$pluginname - Running tcp2shell with user $Mainrunas"
-
-# cd $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/
-
-# This is the new IPv4/v6 code
-sudo -b -n -u $Mainrunas -- $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/tcp2shell2.pl
-
-exit 0
+if [ $Mainactivated == 1 ]; then
+	echo "$pluginname activated. Running command..."
+	sudo -n -u $Mainrunas -- $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/tcp2shell2.pl &
+	# $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/tcp2shell2.pl & 1> /dev/null 2> $loxberryhome/log/plugins/$pluginname/tcp2shell.log
+fi

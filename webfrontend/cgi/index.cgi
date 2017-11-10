@@ -123,7 +123,7 @@ if (!defined $pcfg{'Main.runas'}) { $pcfg{'Main.runas'} = "root"; $pcfgchanged =
 if (!defined $pcfg{'Main.udpport'}) { $pcfg{'Main.udpport'} = "9096"; $pcfgchanged = 1;}
 if (!defined $pcfg{'Main.tcpport'}) { $pcfg{'Main.tcpport'} = "9095"; $pcfgchanged = 1;}
 
-if ($pcfgchanged = 1) {tied(%pcfg)->write();}
+# if ($pcfgchanged = 1) {tied(%pcfg)->write();}
 
 
 ##########################################################################
@@ -267,7 +267,11 @@ my $allowed_remote_ips = textfield(-name=>'allowed_remote_ips',
 			   );
 $maintemplate->param( ALLOWED_REMOTE_IPS => $allowed_remote_ips);
 
-					
+		
+# Get currently running instances
+my $runningInstances = `pgrep --exact -c tcp2shell2.pl`;
+$maintemplate->param( RUNNINGINSTANCES => $runningInstances);
+		
 ##########################################################################
 # Print Template
 ##########################################################################
@@ -309,6 +313,9 @@ sub save
 	if ( grep $_ == $R::security_mode, ('unsecure', 'restricted') ) { $pcfg{'Main.security_mode'} = $R::security_mode;}
 	
 	tied(%pcfg)->write();
+	my $killscript = "$lbcgidir/bin/restart_tcp2shell.sh  > /dev/null &";
+	system($killscript);
+		
 	return;
 	
 }
