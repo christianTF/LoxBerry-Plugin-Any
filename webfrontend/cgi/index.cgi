@@ -267,6 +267,7 @@ my $allowed_remote_ips = textfield(-name=>'allowed_remote_ips',
 			   );
 $maintemplate->param( ALLOWED_REMOTE_IPS => $allowed_remote_ips);
 
+$maintemplate->param( LBPLUGINDIR => $lbplugindir);
 		
 # Get currently running instances
 my $runningInstances = `pgrep --exact -c tcp2shell2.pl`;
