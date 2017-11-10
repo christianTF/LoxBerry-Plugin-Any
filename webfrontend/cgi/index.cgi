@@ -277,7 +277,7 @@ $maintemplate->param( RUNNINGINSTANCES => $runningInstances);
 ##########################################################################
 
 # In LoxBerry V0.2.x we use the old LoxBerry::Web header
-LoxBerry::Web::lbheader("Any Plugin for LoxBerry", "http://www.loxwiki.eu:80/x/7wBmAQ");
+LoxBerry::Web::lbheader("Any Plugin for LoxBerry V$version", "http://www.loxwiki.eu:80/x/7wBmAQ");
 
 # Topmenu
 print $topmenutemplate->output;
