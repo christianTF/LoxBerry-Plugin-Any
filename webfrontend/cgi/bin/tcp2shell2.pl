@@ -59,11 +59,11 @@ use URI::Escape;
 # use TCPUDP;
 
 
-print STDERR "### Any-Plugin V$version ###\n";
+print STDERR "###################### Any-Plugin V$version ######################\n";
 print STDERR "Global variables from LoxBerry::System\n";
 print STDERR "Homedir:     $lbhomedir\n";
 print STDERR "Plugindir:   $lbplugindir\n";
-print STDERR "CGIdir:      $lbcgidir\n";
+print STDERR "YOUR commands:      $lbdatadir/commands\n";
 #print STDERR "HTMLdir:     $lbhtmldir\n";
 #print STDERR "Templatedir: $lbtemplatedir\n";
 #print STDERR "Datadir:     $lbdatadir\n";
@@ -115,7 +115,7 @@ my $restrict_subnet = is_enabled($cfg->param("Main.restrict_subnet")) ? 1 : 0;
 my @restricted_ips = $cfg->param("Main.allowed_remote_ips");
 # print "Restricted IPs (" . scalar(@restricted_ips ) ."): " . join(", ", @restricted_ips);
 @restricted_ips = grep /\S/, @restricted_ips;
-print "Restricted IPs (" . scalar(@restricted_ips ) ."): " . join(", ", @restricted_ips) . "\n";
+print STDERR "Restricted IPs (" . scalar(@restricted_ips ) ."): " . join(", ", @restricted_ips) . "\n";
 
 
 
@@ -137,6 +137,8 @@ our %miniservers = LoxBerry::System::get_miniservers();
 
 # This ist the host we are mirroring commands to the remote machine. Incoming commands from Loxone are mirrored to the remote machine.
 my $tcpin_port = $tcpport;
+
+sleep 2;
 
 # Create sockets
 ## Listen to a guest TCP connection
@@ -207,9 +209,9 @@ sub start_listening
 					## Check restrictions
 					my $newremote = $new->peerhost();
 					(my $sec, my $min, my $hour, my $mday, my $mon, my $year, my $wday, my $yday, my $isdst) = localtime();
-					printf "--------- $year-$mon-$mday $hour:$min:$sec LOCAL TIME ------------\n";
-					
-					print "NEWREMOTE: " . $newremote . "\n";
+					my $currtime = sprintf "####### New Connection ### $year-$mon-$mday $hour:$min:$sec LOCAL TIME ###### \n";
+					print STDERR $currtime;
+					print STDERR "Remote: " . $newremote . "\n";
 					
 					if ($restrict_subnet && !own_subnet($new, $newremote)) {
 						print STDERR "ERROR - Access denied. Quitting.\n";
@@ -218,7 +220,7 @@ sub start_listening
 						print STDERR "ERROR - Access denied. Quitting.\n";
 						close $new;
 					} else {
-						print "New guest connection accepted from $newremote.\n";
+						print STDERR "New guest connection accepted from $newremote.\n";
 						$in_list->add($new);
 					}
 					
@@ -265,11 +267,11 @@ sub start_listening
 				
 					## Check the Miniserver number
 					if (! defined $msnr) { 
-						print "Setting to msnr=1 (was: #$msnr#)\n";
+						print STDERR "No MS defined. Setting to msnr=1\n";
 						$msnr = 1; 
 					}
-					if ($msnr lt 1 or $msnr gt keys %miniservers)
-						{ print "ERROR: Given number of Miniserver ($msnr) does not exist - QUITTING guest\n";
+					if ($msnr < 1 or $msnr gt keys %miniservers)
+						{ print STDERR "ERROR: Given number of Miniserver ($msnr) does not exist - QUITTING guest\n";
 						  $rname = undef;
 						  $msnr = undef;
 					}
@@ -351,6 +353,7 @@ sub exec_ping
 		"\"$rname\":" . time;
 	$udp_output = substr $udp_output, 0, 255;
 	my $udp_out = $udpout_sock[$msnumber];
+	print STDERR "SEND via UDP to MS$msnumber: $udp_output\n";
 	print $udp_out $udp_output;
   }
 	
@@ -373,7 +376,7 @@ sub executeCommandline
   
   print STDERR "Exit Code: $status\n";
   print STDERR "Output:\n";
-  print STDERR $output;
+  print STDERR $output . "\n";
   
   # print STDERR "Name is $rname, return mode is $rreturn\n";
   
@@ -389,6 +392,8 @@ sub executeCommandline
 	$udp_output = substr $udp_output, 0, 255;
 	my $udp_out = $udpout_sock[$msnumber];
 	print $udp_out $udp_output;
+	print STDERR "SEND via UDP to MS$msnumber: $udp_output\n";
+	
   }
   
 }
@@ -504,7 +509,7 @@ sub to_ms
 	my $ua = LWP::UserAgent->new;
 	$ua->timeout(1);
 	print "DEBUG: #$label# #$text#\n";
-	print "DEBUG: -->URL $url_nopass\n";
+	print STDERR "SEND via HTTP-REST to MS$msnumber: -->URL $url_nopass\n";
 	my $response = $ua->get($url);
 	return $response;
 }
