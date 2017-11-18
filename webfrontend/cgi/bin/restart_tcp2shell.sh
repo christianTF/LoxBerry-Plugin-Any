@@ -61,10 +61,13 @@ if [ -e $configfile ]; then
   # Config file parsing end
 fi
 
-# If runas is empty, set loxberry as user
+# If runas is empty, set root as user
 if [ -z "$Mainrunas" ]; then
 	Mainrunas = "root"
 fi
+
+chmod -R 774 $loxberryhome/data/plugins/$pluginname/commands
+
 
 if [ $Mainactivated == 1 ]; then
 	echo "$pluginname activated. Running command..."

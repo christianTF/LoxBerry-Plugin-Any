@@ -52,5 +52,8 @@ cp -v -r $ARGV5/config/plugins/$ARGV3/ /tmp/$ARGV1\_upgrade/config
 echo "<INFO> Backing up existing log files"
 cp -v -r $ARGV5/log/plugins/$ARGV3/ /tmp/$ARGV1\_upgrade/log
 
+echo "<INFO> Backing up existing command files"
+cp -v -r $ARGV5/data/plugins/$ARGV3/ /tmp/$ARGV1\_upgrade/data
+
 # Exit with Status 0
 exit 0

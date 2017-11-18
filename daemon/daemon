@@ -17,7 +17,6 @@ if [ ! -d $pluginname ]; then
 fi
 
 /usr/bin/logger "loxberry-plugin-$pluginname - DAEMON Script from Any Plugin"
-
 	
 # Add Any-Plugin to sudoers (need root permission)
 # Sudoers V2
@@ -77,10 +76,9 @@ if [ -z "$Mainrunas" ]; then
 	Mainrunas = "root"
 fi
 
+chmod -R 774 $loxberryhome/data/plugins/$pluginname/commands
+
 /usr/bin/logger "loxberry-plugin-$pluginname - Running tcp2shell with user $Mainrunas"
-
-# cd $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/
-
 # This is the new IPv4/v6 code
 sudo -n -u $Mainrunas -- $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/tcp2shell2.pl >>$loxberryhome/log/plugins/$pluginname/tcp2shell.log 2>&1 &
 exit 0

@@ -314,7 +314,7 @@ sub save
 	if ( grep $_ == $R::security_mode, ('unsecure', 'restricted') ) { $pcfg{'Main.security_mode'} = $R::security_mode;}
 	
 	tied(%pcfg)->write();
-	my $killscript = "$lbcgidir/bin/restart_tcp2shell.sh  > /dev/null &";
+	my $killscript = "sudo $lbcgidir/bin/restart_tcp2shell.sh  > /dev/null &";
 	system($killscript);
 		
 	return;

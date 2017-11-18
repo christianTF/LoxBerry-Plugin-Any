@@ -397,7 +397,7 @@ sub executeCommandline
 sub executeShell {
   my ($commandline) = @_;
   
-  my $output = qx{$commandline 2>&1};
+  my $output = qx{cd $lbdatadir/commands; $commandline 2>&1};
   my $status = $? >> 8;
   # Negative exit code is returned as 16bit int --> correct this 
   $status = ($status & 0x80) ? -(0x100 - ($status & 0xFF)) : $status;
