@@ -372,30 +372,39 @@ sub executeCommandline
   my $output;
   my $status;
   
-  ($output, $status) = executeShell($commandline);
-  
-  print STDERR "Exit Code: $status\n";
-  print STDERR "Output:\n";
-  print STDERR $output . "\n";
-  
-  # print STDERR "Name is $rname, return mode is $rreturn\n";
-  
-  # Send Return Code
-  if (substr ($rreturn, 0, 2) eq 'rc' || substr ($rreturn, 0, 5) eq 'rcudp') {
-	to_ms($rname, $status, $msnumber);
+  print STDERR "Try to fork\n";
+  my $pid = fork();
+  if (not defined $pid) {
+		print STDERR "!!! Could not fork.\n";
   }
-  # Send Output by UDP
-  if (substr ($rreturn, 0, 3) eq 'udp' || substr ($rreturn, 0, 5) eq 'rcudp') {
-	my $udp_output = 
-		"\"$rname\":" . 
-		"$output";
-	$udp_output = substr $udp_output, 0, 255;
-	my $udp_out = $udpout_sock[$msnumber];
-	print $udp_out $udp_output;
-	print STDERR "SEND via UDP to MS$msnumber: $udp_output\n";
-	
-  }
+  if (not $pid) {
+		print STDERR "Command forked.\n";
   
+		  ($output, $status) = executeShell($commandline);
+		  
+		  print STDERR "Exit Code: $status\n";
+		  print STDERR "Output:\n";
+		  print STDERR $output . "\n";
+		  
+		  # print STDERR "Name is $rname, return mode is $rreturn\n";
+		  
+		  # Send Return Code
+		  if (substr ($rreturn, 0, 2) eq 'rc' || substr ($rreturn, 0, 5) eq 'rcudp') {
+			to_ms($rname, $status, $msnumber);
+		  }
+		  # Send Output by UDP
+		  if (substr ($rreturn, 0, 3) eq 'udp' || substr ($rreturn, 0, 5) eq 'rcudp') {
+			my $udp_output = 
+				"\"$rname\":" . 
+				"$output";
+			$udp_output = substr $udp_output, 0, 255;
+			my $udp_out = $udpout_sock[$msnumber];
+			print $udp_out $udp_output;
+			print STDERR "SEND via UDP to MS$msnumber: $udp_output\n";
+			
+		  }
+		exit(0);
+		}
 }
 
 # Runs the shell command and returns output and status code
