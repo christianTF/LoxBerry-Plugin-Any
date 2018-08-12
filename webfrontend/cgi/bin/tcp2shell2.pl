@@ -198,8 +198,17 @@ sub start_listening
 	
 	while (1)
 	{
+		
+		# Quit finished child processes
+		my $procchild;
+		do {
+			$procchild = waitpid(-1, 1);
+		} while $procchild > 0;
+		
 		# This is the handling of incoming TCP connections (Guests)
 		###########################################################
+		
+		
 		if (my @in_ready = $in_list->can_read(0.2)) {
 			foreach $guest (@in_ready) {
 				if($guest == $tcpin_sock) {
