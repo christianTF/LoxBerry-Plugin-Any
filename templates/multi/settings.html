@@ -1,5 +1,14 @@
+<div data-role="navbar" >
+	<ul>
+		<li><a id="a_settings" href="./index.cgi" <TMPL_VAR NAME=CLASS_INDEX> ><TMPL_VAR MENU.SETTINGS></a></li>
+<!--		<li><a id="a_settings" href="./settings.cgi" <TMPL_VAR NAME=CLASS_SETTINGS> >Settings</a></li> -->
+<!--		<li><a id="a_logfile" href="/admin/system/tools/logfile.cgi?logfile=plugins/lbbackup/raspiBackup.log&header=html&format=template" <TMPL_VAR NAME=CLASS_LOGFILE> >Logfile</a></li> -->
+<!--		<li><a target="_blank" href="/admin/system/tools/logfile.cgi?logfile=plugins/lbbackup/raspiBackup.log&header=html&format=template">Logfile</a></li> -->
+ 	</ul>
+</div>
+
 <center>
-<p><b>Informationen zur Verwendung findest du im <a href="http://www.loxwiki.eu:80/x/7wBmAQ">Wiki-Artikel</a>.
+<p><b><TMPL_VAR ANY.USAGE_INFO>.</b>
 <form method="post" data-ajax="false" name="cti_form" id="cti_form" action="./index.cgi">
 <style>
 th, td {
@@ -16,9 +25,10 @@ th, td {
 	<fieldset data-role="controlgroup">
 	<TMPL_VAR ACTIVATED><br>
 	</fieldset>
-	<a id="btnlogs" data-role="button" href="/admin/system/tools/logfile.cgi?logfile=plugins/<TMPL_VAR LBPLUGINDIR>/tcp2shell.log&header=html&format=template" target="_blank" data-inline="true" data-mini="true" data-icon="arrow-d">Logfile</a>
 	</td>
-	<td><TMPL_VAR RUNNINGINSTANCES> Instanzen laufen derzeit (<i>mehr als eine wäre nicht gut</i>)
+	<td><TMPL_VAR RUNNINGINSTANCES> <TMPL_VAR ANY.INSTANCES_RUNNING>
+	<a id="btnlogs" data-role="button" href="/admin/system/tools/logfile.cgi?logfile=plugins/<TMPL_VAR LBPLUGINDIR>/tcp2shell.log&header=html&format=template" target="_blank" data-inline="true" data-mini="true" data-icon="arrow-d"><TMPL_VAR ANY.BUTTON_LOGFILE></a>
+	
 	</td>
 	</tr>
 <tr>
@@ -28,18 +38,19 @@ th, td {
 	<TMPL_VAR TCPPORT>
 	</td>
 	<td>
-	<label for="tcpport">UDP-OUT </label>
+	<label for="tcpport">UDP-OUT</label>
 	<TMPL_VAR UDPPORT>
 	</td></tr></table>
 	
 	
 	</td>
 	
-	<td>Der IN-Port ist der TCP-Port, mit dem dein Miniserver mit dem Any-Plugin verbinden kann.
-	<br>Der OUT-Port ist der UDP-Port, an den das Any-Plugin an deinen Miniserver Daten sendet.
-	<br>Wenn du unsicher bist, lass die Standardwerte TCP-IN=9095 und TCP-OUT=9096.
+	<td><TMPL_VAR ANY.TCP_IN_HINT>
+	<br><TMPL_VAR ANY.UDP_OUT_HINT>
+	<br><TMPL_VAR ANY.DEFAULTPORT_HINT>
 	</td>
 </tr>
+<!--
 <tr>
 	<td>
 	<fieldset data-role="controlgroup">
@@ -47,20 +58,21 @@ th, td {
 	</fieldset>
 	</td>
 	<td>
-	Hier kannst du den Sicherheitsmodus auswählen. Derzeit wird nur UNSECURE unterstützt, d.h. 
-	es können beliebige Befehle mit dem command-Befehl übertragen und ausgeführt werden.<br>
-	Der eingeschränkte Modus für Makros ist noch nicht verfügar.
+	<TMPL_VAR ANY.SECURITY_MODE_HINT>
 	</td>
 </tr>
+-->
+<!--
 <tr>
 	<td>
 	<fieldset data-role="controlgroup">
 	<TMPL_VAR AUTHENTICATION>
 	</fieldset>
 	</td><td>
-	Derzeit ist noch keine Authentifizierung implementiert.
+	<TMPL_VAR ANY.AUTHENTICATION_HINT>
 	</td>
 </tr>
+-->
 <tr>
 	<td>
 	<fieldset data-role="controlgroup">
@@ -68,9 +80,7 @@ th, td {
 	</fieldset>
 	</td>
 	<td>
-	Bei Einschränkung auf das eigene Subnet dürfen nur Hosts verbinden, die eine Verbindung 
-	aus dem eigenen Netzwerk aufbauen. Diese Option sollte aktiviert bleiben, außer du benötigst
-	explizit Verbindungen aus anderen Subnetzen. 
+	<TMPL_VAR ANY.RESTRICTED_SUBNET_HINT>
 	</td>
 </tr>
 <tr>
@@ -80,16 +90,13 @@ th, td {
 	</fieldset>
 	</td>
 	<td>
-	Damit kannst du auf bestimmte IP-Adressen einschränken, die zum Any-Plugin verbinden dürfen.<br>
-	Wenn das Feld leer ist, dürfen alle IP-Adressen verbinden.<br>
-	Es sind nur IP-Adressen (keine Hostnamen) erlaubt. Gib die IP-Adressen mit Komma getrennt ein.<br>
-	Wenn du auf IP-Adressen einschränkst, und 127.0.0.1 nicht berücksichtigst, kannst du lokal vom LoxBerry nicht mehr verbinden.  
+	<TMPL_VAR ANY.RESTRICTED_IP_HINT> 
 	</td>
 </tr>
 <tr>
 <td colspan="2">
 <input type="hidden" name="save" value="save">
-<input type="submit" value="Einstellungen speichern">
+<input type="submit" value="<TMPL_VAR ANY.BUTTON_SUBMIT>">
 
 </td>
 </tr>

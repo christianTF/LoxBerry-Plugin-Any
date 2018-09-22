@@ -19,7 +19,7 @@ if (-d "REPLACEINSTALLFOLDER/webfrontend/cgi/plugins/anyplugin/lib") {
 # Version of this script
 our $version = LoxBerry::System::pluginversion();
 
-# Christian Fenzl, christiantf@gmx.at 2017
+# Christian Fenzl, christiantf@gmx.at 2017-2018
 # This script is a TCP to Shell gateway. 
 
 # Debian Packages required

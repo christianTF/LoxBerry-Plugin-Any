@@ -141,14 +141,6 @@ if ($cgi->param("save")) {
 
 # See http://www.perlmonks.org/?node_id=65642
 
-# Topmenu
-$topmenutemplate = HTML::Template->new(
-	filename => "$lbtemplatedir/multi/topmenu.html",
-	global_vars => 1,
-	loop_context_vars => 1,
-	die_on_bad_params => 0,
-);
-
 # Main
 #$maintemplate = HTML::Template->new(filename => "$lbtemplatedir/multi/main.html");
 $maintemplate = HTML::Template->new(
@@ -160,7 +152,7 @@ $maintemplate = HTML::Template->new(
 );
 
 # Activate Settings button in topmenu
-$topmenutemplate->param( CLASS_INDEX => 'class="ui-btn-active ui-state-persist"');
+$maintemplate->param( CLASS_INDEX => 'class="ui-btn-active ui-state-persist"');
 
 ##########################################################################
 # Translations
@@ -174,11 +166,11 @@ $lang         = substr($lang,0,2);
 # Read Plugin transations
 # Read English language as default
 # Missing phrases in foreign language will fall back to English
-$languagefileplugin 	= "$lbtemplatedir/en/language.txt";
+$languagefileplugin 	= "$lbtemplatedir/lang/language_en.ini";
 Config::Simple->import_from($languagefileplugin, \%TPhrases);
 
 # Read foreign language if exists and not English
-$languagefileplugin = "$lbtemplatedir/$lang/language.txt";
+$languagefileplugin = "$lbtemplatedir/lang/language_$lang.ini";
 # Now overwrite phrase variables with user language
 if ((-e $languagefileplugin) and ($lang ne 'en')) {
 	Config::Simple->import_from($languagefileplugin, \%TPhrases);
@@ -186,7 +178,7 @@ if ((-e $languagefileplugin) and ($lang ne 'en')) {
 
 # Parse phrase variables to html templates
 while (my ($name, $value) = each %TPhrases){
-	$maintemplate->param("T::$name" => $value);
+	$maintemplate->param("$name" => $value);
 	#$headertemplate->param("T::$name" => $value);
 	#$footertemplate->param("T::$name" => $value);
 }
@@ -201,7 +193,7 @@ $maintemplate->param( PLUGINNAME => 'Any Plugin for LoxBerry' );
 my $activated = checkbox(-name => 'activated',
 								  -checked => is_enabled($pcfg{'Main.activated'}),
 									-value => 'True',
-									-label => 'Plugin aktiviert',
+									-label => $TPhrases{'SELECTIONS.CHECKBOX_ACTIVATED_PLUGIN_ACTIVATED'},
 								);
 $maintemplate->param( ACTIVATED => $activated);
 
@@ -232,8 +224,8 @@ my $security_mode = radio_group(
 						-name => 'security_mode',
 						-values => ['unsecure', 'restricted'],
 						-labels => { 
-							'unsecure' => 'UNSICHER',
-							'restricted' => 'Eingeschränkt',
+							'unsecure' => $TPhrases{'SELECTIONS.RADIO_SECURITY_MODE_UNSECURE'},
+							'restricted' => $TPhrases{'SELECTIONS.RADIO_SECURITY_MODE_LIMITED'},
 							},
 						-default => $pcfg{'Main.security_mode'} ,
 						);
@@ -243,7 +235,7 @@ $maintemplate->param( SECURITY_MODE => $security_mode);
 my $authentication = checkbox(-name => 'authentication',
 								  -checked => is_enabled($pcfg{'Main.authentication'}),
 									-value => 'True',
-									-label => 'Authentifizierung aktiviert',
+									-label => $TPhrases{'SELECTIONS.CHECKBOX_AUTHENTICATION_ACTIVATED'},
 								);
 $maintemplate->param( AUTHENTICATION => $authentication);
 
@@ -251,7 +243,7 @@ $maintemplate->param( AUTHENTICATION => $authentication);
 my $restrict_subnet = checkbox(-name => 'restrict_subnet',
 								  -checked => is_enabled($pcfg{'Main.restrict_subnet'}),
 									-value => 'True',
-									-label => 'Auf eigenes Subnet einschränken',
+									-label => $TPhrases{'SELECTIONS.CHECKBOX_RESTRICT_SUBNET_ACTIVATED'},
 								);
 $maintemplate->param( RESTRICTED_SUBNET => $restrict_subnet);
 
@@ -279,9 +271,6 @@ $maintemplate->param( RUNNINGINSTANCES => $runningInstances);
 
 # In LoxBerry V0.2.x we use the old LoxBerry::Web header
 LoxBerry::Web::lbheader("Any Plugin for LoxBerry V$version", "http://www.loxwiki.eu:80/x/7wBmAQ");
-
-# Topmenu
-print $topmenutemplate->output;
 
 # Main
 print $maintemplate->output;
