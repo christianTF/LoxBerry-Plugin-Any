@@ -54,5 +54,8 @@ cp -v -r /tmp/$ARGV1\_upgrade/data/$ARGV3/* $ARGV5/data/plugins/$ARGV3/
 echo "<INFO> Remove temporary folders"
 rm -r /tmp/$ARGV1\_upgrade
 
+echo "<INFO> Removing sudoers savefile to recreate it after reboot"
+rm $ARGV5/config/plugins/$ARGV3/sudoers.*
+
 # Exit with Status 0
 exit 0
