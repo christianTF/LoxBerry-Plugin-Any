@@ -70,6 +70,10 @@ print STDERR "YOUR commands:      $lbdatadir/commands\n";
 #print STDERR "Logdir:      $lblogdir\n";
 #print STDERR "Configdir:   $lbconfigdir\n";
 
+my $curruser = $ENV{LOGNAME} || $ENV{USER} || getpwuid($<);
+print STDERR "Running user is $curruser\n";
+
+
 
 my $home = $lbhomedir;
 our $tcpin_sock;
