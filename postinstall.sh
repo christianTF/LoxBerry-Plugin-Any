@@ -32,6 +32,9 @@ echo "<INFO> Prepare daemon ..."
 /bin/sed -i "s:REPLACEFOLDERNAME:$ARGV3:g" $ARGV5/system/daemons/plugins/$ARGV2
 /bin/sed -i "s:REPLACEINSTALLFOLDER:$ARGV5:g" $ARGV5/system/daemons/plugins/$ARGV2
 
+echo "<INFO> Removing sudoers savefile to recreate it after reboot"
+rm $ARGV5/config/plugins/$ARGV3/sudoers.*
+
 #	echo "<WARNING> ================================================="
 #	echo "<WARNING> Please REBOOT your LoxBerry after installation."
 #	echo "<WARNING> Bitte LoxBerry nach der Installation REBOOTEN."
