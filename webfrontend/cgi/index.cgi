@@ -299,11 +299,12 @@ sub save
 	if (defined $R::tcpport and looks_like_number($R::tcpport)) { $pcfg{'Main.tcpport'} = $R::tcpport;}
 	$pcfg{'Main.allowed_remote_ips'} =  $R::allowed_remote_ips;
 	
-	if ( grep $_ == $R::security_mode, ('unsecure', 'restricted') ) { $pcfg{'Main.security_mode'} = $R::security_mode;}
-	if ( grep $_ == $R::security_mode, ('unsecure', 'restricted') ) { $pcfg{'Main.security_mode'} = $R::security_mode;}
+	if ( grep $_ eq $R::security_mode, ('unsecure', 'restricted') ) { $pcfg{'Main.security_mode'} = $R::security_mode;}
+	#if ( grep $_ eq $R::security_mode, ('unsecure', 'restricted') ) { $pcfg{'Main.security_mode'} = $R::security_mode;}
 	
 	tied(%pcfg)->write();
 	my $killscript = "sudo $lbcgidir/bin/restart_tcp2shell.sh  > /dev/null &";
+	print STDERR "Killscript: $killscript\n";
 	system($killscript);
 		
 	return;

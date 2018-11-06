@@ -10,6 +10,10 @@
 <center>
 <p><b><TMPL_VAR ANY.USAGE_INFO>.</b>
 <form method="post" data-ajax="false" name="cti_form" id="cti_form" action="./index.cgi">
+
+<input type="hidden" name="security_mode" value="unsecure">
+
+
 <style>
 th, td {
     padding: 10px;
@@ -51,6 +55,7 @@ th, td {
 	</td>
 </tr>
 <!--
+SECURE MODE currently is set fixed on top of the form to 'unsecure'
 <tr>
 	<td>
 	<fieldset data-role="controlgroup">

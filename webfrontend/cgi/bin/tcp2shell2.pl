@@ -109,7 +109,8 @@ my $activated = $cfg->param("Main.activated");
 our $cfgversion = $cfg->param("Main.ConfigVersion");
 my $udpport = $cfg->param("Main.udpport");
 my $tcpport = $cfg->param("Main.tcpport");
-my $security = defined $cfg->param("Main.security_mode") ? uc $cfg->param("Main.security_mode") : uc "restricted";
+# my $security = defined $cfg->param("Main.security_mode") ? uc $cfg->param("Main.security_mode") : uc "restricted";
+my $security = "UNSECURE";
 my $authentication = !is_enabled($cfg->param("Main.authentication")) ? 0 : 1;
 my $restrict_subnet = is_enabled($cfg->param("Main.restrict_subnet")) ? 1 : 0;
 my @restricted_ips = $cfg->param("Main.allowed_remote_ips");
@@ -238,7 +239,7 @@ sub start_listening
 					my $guest_answer;
 					# my $msnr;
 					chomp $guest_line;
-					#print "GUEST: $guest_line\n";
+					print STDERR "GUEST: $guest_line\n";
 					my @guest_params = split(/ /, $guest_line);
 					# print "GUEST_PARAMS[0]: $guest_params[0] \n";
 					
@@ -246,8 +247,8 @@ sub start_listening
 					my $rname_temp = $guest_params[0];
 					my $rname;
 					switch(lc $rname_temp) {
-						case 'status' {	print "1. Parameter is STATUS\n"; }
-						else		  { print "1. Parameter (Name) is $rname_temp\n"; 
+						case 'status' {	print STDERR "1. Parameter is STATUS\n"; }
+						else		  { print STDERR "1. Parameter (Name) is $rname_temp\n"; 
 										$rname = $rname_temp;}
 					}
 
@@ -255,11 +256,11 @@ sub start_listening
 					my ($rreturn, $msnr) = split /\./, lc $guest_params[1], 2;
 					
 					switch ($rreturn) {
-						case 'off'	{ print "2. Parameter is off (nothing will be returned)\n"; }
-						case 'rc'	{ print "2. Parameter is rc (will return exit code)\n"; }
-						case 'udp'	{ print "2. Parameter is udp (will return udp string)\n"; }
-						case 'rcudp'{ print "2. Parameter is rcudp (will return exit code and udp string)\n"; }
-						else		{ print "2. Parameter undefined - set to rc\n";
+						case 'off'	{ print STDERR "2. Parameter is off (nothing will be returned)\n"; }
+						case 'rc'	{ print STDERR "2. Parameter is rc (will return exit code)\n"; }
+						case 'udp'	{ print STDERR "2. Parameter is udp (will return udp string)\n"; }
+						case 'rcudp'{ print STDERR "2. Parameter is rcudp (will return exit code and udp string)\n"; }
+						else		{ print STDERR "2. Parameter undefined - set to rc\n";
 											$rreturn = "off";
 										}
 							}
@@ -267,10 +268,10 @@ sub start_listening
 					## Get third parameter (command or macro)
 					my $rcommand = lc $guest_params[2]; 
 					switch ($rcommand) {
-						case 'command'	{ print "3. Parameter is command (will run following command)\n"; }
-						case 'macro'	{ print "3. Parameter is macro (will run macro $guest_params[3])\n"; }
-						case 'ping'		{ print "3. Parameter is ping (will return Linux epoch time)\n"; }
-						else			{ print "3. Parameter is undefined - QUITTING guest\n";
+						case 'command'	{ print STDERR "3. Parameter is command (will run following command)\n"; }
+						case 'macro'	{ print STDERR "3. Parameter is macro (will run macro $guest_params[3])\n"; }
+						case 'ping'		{ print STDERR "3. Parameter is ping (will return Linux epoch time)\n"; }
+						else			{ print STDERR "3. Parameter is undefined - QUITTING guest\n";
 											$rcommand = undef;}
 					}
 				
@@ -285,7 +286,7 @@ sub start_listening
 						  $msnr = undef;
 					}
 					
-					if (defined $msnr and $msnr gt 0) { print "Miniserver used is $msnr (" . $miniservers{$msnr}{Name} . ")\n";}
+					if (defined $msnr and $msnr gt 0) { print STDERR "Miniserver used is $msnr (" . $miniservers{$msnr}{Name} . ")\n";}
 					
 					## Decide what to do next
 					if (defined $rname) {
@@ -304,6 +305,10 @@ sub start_listening
 						
 						
 					} else { print STDERR "Doing nothing, client good bye!\n"; }
+					
+					if ($guest->connected) {
+						print $guest "$guest_line received. Good bye.\n";
+					}
 					
 					$msnr = undef;
 					$guest_line = undef;
@@ -460,9 +465,9 @@ sub create_out_socket
 		or die "Couldn't connect to $remotehost:$port : $@\n";
 	sleep (1.5);
 	if ($socket->connected) {
-		print "Created $proto out socket to $remotehost on port $port\n";
+		print STDERR "Created $proto out socket to $remotehost on port $port\n";
 	} else {
-		print "WARNING: Socket to $remotehost on port $port seems to be offline - will retry\n";
+		print STDERR "WARNING: Socket to $remotehost on port $port seems to be offline - will retry\n";
 	}
 	IO::Socket::Timeout->enable_timeouts_on($socket);
 	$socket->read_timeout(2);
@@ -494,7 +499,7 @@ sub create_in_socket
 	die "cannot create socket - Already in use?\nERROR is: $!\n" unless $socket;
 	# In some OS blocking mode must be expricitely disabled
 	IO::Handle::blocking($socket, 0);
-	print "server waiting for $proto client connection on port $port\n";
+	print STDERR "server waiting for $proto client connection on port $port\n";
 	return $socket;
 }
 
@@ -526,7 +531,7 @@ sub to_ms
 	my $url_nopass = "http:// " . $miniservers{$msnumber}{Admin} . ":*****\@" . $miniservers{$msnumber}{IPAddress} . ":" . $miniservers{$msnumber}{Port} . "/dev/sps/io/$labelenc/$textenc";
 	my $ua = LWP::UserAgent->new;
 	$ua->timeout(1);
-	print "DEBUG: #$label# #$text#\n";
+	print STDERR "DEBUG: #$label# #$text#\n";
 	print STDERR "SEND via HTTP-REST to MS$msnumber: -->URL $url_nopass\n";
 	my $response = $ua->get($url);
 	return $response;
