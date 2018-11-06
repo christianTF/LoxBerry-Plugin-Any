@@ -242,7 +242,9 @@ sub start_listening
 					$guest->recv(my $guest_line, 1024);
 					my $guest_answer;
 					# my $msnr;
-					chomp $guest_line;
+					#chomp $guest_line;
+					$guest_line =~ s/[\r\n]+//;
+					$guest_line = trim($guest_line);
 					print STDERR "GUEST: $guest_line\n";
 					my @guest_params = split(/ /, $guest_line);
 					# print "GUEST_PARAMS[0]: $guest_params[0] \n";
@@ -347,8 +349,8 @@ sub exec_command
 	for (my $nr=0; $nr < (scalar @rline); $nr++) {
 		$commandline .= $rline[$nr] . " ";
 	}
-	rtrim($commandline);
-	print STDERR "exec_command Commandline: $commandline\n";
+	trim($commandline);
+	print STDERR "exec_command Commandline: '$commandline'\n";
 	
 	executeCommandline($rname, $rreturn, $msnr, $commandline);
 	
