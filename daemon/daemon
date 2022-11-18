@@ -81,4 +81,5 @@ chmod -R 774 $loxberryhome/data/plugins/$pluginname/commands
 /usr/bin/logger "loxberry-plugin-$pluginname - Running tcp2shell with user $Mainrunas"
 # This is the new IPv4/v6 code
 sudo -n -u $Mainrunas -- $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/tcp2shell2.pl >>$loxberryhome/log/plugins/$pluginname/tcp2shell.log 2>&1 &
+chown loxberry:loxberry $loxberryhome/log/plugins/$pluginname/tcp2shell.log
 exit 0
