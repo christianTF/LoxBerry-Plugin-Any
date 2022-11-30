@@ -98,10 +98,7 @@ my @restricted_ips = $cfg->param("Main.allowed_remote_ips");
 @restricted_ips = grep /\S/, @restricted_ips;
 print STDERR "Restricted IPs (" . scalar(@restricted_ips ) ."): " . join(", ", @restricted_ips) . "\n";
 
-
-
-
-if(! is_true($activated) && ! $option_activate) {	
+if(! is_enabled($activated) && ! $option_activate) {	
 	print STDERR "Any-Plugin is NOT activated in config file. That's ok. Terminating.\n";
 	unlink $pidfile;
 	exit(0);
