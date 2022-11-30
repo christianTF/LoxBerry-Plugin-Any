@@ -2,7 +2,7 @@
 #udpserver.pl
 # Source: http://www.thegeekstuff.com/2010/07/perl-tcp-udp-socket-programming/
 
-# Christian Fenzl, 2017
+# Christian Fenzl, 2017-2022
 # This is not used for normal operation.
 # It simulates a simple UDP receiver like Loxone Miniserver is.
 # For debugging, send UDP packages to this server instead of the Miniserver and see the UDP communication.

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-loxberryhome=REPLACEINSTALLFOLDER
-pluginname=REPLACEFOLDERNAME
+loxberryhome=REPLACELBHOMEDIR
+pluginname=REPLACELBPPLUGINDIR
 PIDFILES=/run/shm/tcp2shell.*
 
 # Directory/Pluginname fallback for test environment

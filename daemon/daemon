@@ -5,8 +5,8 @@
 # Name this file "daemon" in your plugin-archive. It will be renamed to NAME
 # during installation
 
-loxberryhome=REPLACEINSTALLFOLDER
-pluginname=REPLACEFOLDERNAME
+loxberryhome=REPLACELBHOMEDIR
+pluginname=REPLACELBPPLUGINDIR
 
 /usr/bin/logger "loxberry-plugin-$pluginname - DAEMON Script from Any Plugin"
 	
