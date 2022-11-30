@@ -286,13 +286,14 @@ sub save
 	$cgi->import_names('R');
 	
 	# now we check each imported value and write it to the config
-	$pcfg{'Main.activated'} = defined $R::activated and is_enabled($R::activated) ? "1" : "0";
-	$pcfg{'Main.restrict_subnet'} = defined $R::restrict_subnet and is_enabled($R::restrict_subnet) ? "true" : "false";
-	$pcfg{'Main.authentication'} = defined $R::authentication and is_enabled($R::authentication) ? "on" : "off";
+	$pcfg{'Main.activated'} = (defined $R::activated and is_enabled($R::activated)) ? "1" : "0";
+	$pcfg{'Main.restrict_subnet'} = (defined $R::restrict_subnet and is_enabled($R::restrict_subnet)) ? "true" : "false";
+	$pcfg{'Main.authentication'} = (defined $R::authentication and is_enabled($R::authentication)) ? "on" : "off";
 	
 	
 	if (defined $R::udpport and looks_like_number($R::udpport)) { $pcfg{'Main.udpport'} = $R::udpport;}
 	if (defined $R::tcpport and looks_like_number($R::tcpport)) { $pcfg{'Main.tcpport'} = $R::tcpport;}
+	$R::allowed_remote_ips if 0;
 	$pcfg{'Main.allowed_remote_ips'} =  $R::allowed_remote_ips;
 	
 	if ( grep $_ eq $R::security_mode, ('unsecure', 'restricted') ) { $pcfg{'Main.security_mode'} = $R::security_mode;}

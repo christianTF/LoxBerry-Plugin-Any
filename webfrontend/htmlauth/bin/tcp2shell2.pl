@@ -1,6 +1,6 @@
 #!/usr/bin/perl
-use strict;
 use warnings;
+use strict;
 use LoxBerry::System;
 use LoxBerry::Web;
 
@@ -192,6 +192,7 @@ sub start_listening
 		
 		if (my @in_ready = $in_list->can_read(0.2)) {
 			foreach $guest (@in_ready) {
+				my @guest_params;
 				if($guest == $tcpin_sock) {
 					# Create new incoming connection from guest
 					my $new = $tcpin_sock->accept  or die "ERROR: It seems that this port is already occupied - Another instance running?\nQUITTING with error: $! ($@)\n";
@@ -222,7 +223,7 @@ sub start_listening
 					$guest_line =~ s/[\r\n]+//;
 					$guest_line = trim($guest_line);
 					print STDERR "GUEST: $guest_line\n";
-					my @guest_params = split(/ /, $guest_line);
+					@guest_params = split(/ /, $guest_line);
 					# print "GUEST_PARAMS[0]: $guest_params[0] \n";
 					
 					## Get first parameter (<Name> or keyword)
@@ -230,9 +231,9 @@ sub start_listening
 					my $rname;
 					if(lc $rname_temp eq 'status') {
 						print STDERR "1. Parameter is STATUS\n"; 
-					} else { 
+					} else {
 						print STDERR "1. Parameter (Name) is $rname_temp\n"; 
-						$rname = $rname_temp;}
+						$rname = $rname_temp;
 					}
 
 					## Get second parameter (return method)
@@ -252,41 +253,43 @@ sub start_listening
 					if($rcommand eq 'command') { print STDERR "3. Parameter is command (will run following command)\n"; }
 					elsif($rcommand eq 'macro')	{ print STDERR "3. Parameter is macro (will run macro $guest_params[3])\n"; }
 					elsif($rcommand eq 'ping') { print STDERR "3. Parameter is ping (will return Linux epoch time)\n"; }
-					else { 
+					else {
 						print STDERR "3. Parameter is undefined - QUITTING guest\n";
 						$rcommand = undef;
 					}
 				
 					## Check the Miniserver number
-					if (! defined $msnr) { 
+					if (! defined $msnr) {
 						print STDERR "No MS defined. Setting to msnr=1\n";
 						$msnr = 1; 
 					}
-					if ($msnr < 1 or $msnr gt keys %miniservers)
-						{ print STDERR "ERROR: Given number of Miniserver ($msnr) does not exist - QUITTING guest\n";
-						  $rname = undef;
-						  $msnr = undef;
+					if ($msnr < 1 or $msnr gt keys %miniservers) { 
+						print STDERR "ERROR: Given number of Miniserver ($msnr) does not exist - QUITTING guest\n";
+						$rname = undef;
+						$msnr = undef;
 					}
 					
-					if (defined $msnr and $msnr gt 0) { print STDERR "Miniserver used is $msnr (" . $miniservers{$msnr}{Name} . ")\n";}
+					if (defined $msnr and $msnr gt 0) { 
+						print STDERR "Miniserver used is $msnr (" . $miniservers{$msnr}{Name} . ")\n";
+					}
 					
 					## Decide what to do next
 					if (defined $rname) {
-						if ( $rcommand eq "command" ) 
-							{ print STDERR "Calling exec_command\n";
-							  exec_command($rname, $rreturn, $msnr, @guest_params);
-							}
-						elsif ( $rcommand eq "macro" )
-							{ print STDERR "Calling exec_macro $guest_params[3]\n";
-							  exec_macro($rname, $rreturn, $msnr, $guest_params[3]);
-							}
-						elsif ( $rcommand eq "ping" )
-							{ print STDERR "Calling ping\n";
-							  exec_ping($rname, $rreturn, $msnr);
-							}
-						
-						
-					} else { print STDERR "Doing nothing, client good bye!\n"; }
+						if ( $rcommand eq "command" ) { 
+							print STDERR "Calling exec_command\n";
+							exec_command($rname, $rreturn, $msnr, @guest_params);
+						}
+						elsif ( $rcommand eq "macro" ) { 
+							print STDERR "Calling exec_macro $guest_params[3]\n";
+							exec_macro($rname, $rreturn, $msnr, $guest_params[3]);
+						}
+						elsif ( $rcommand eq "ping" ) { 
+							print STDERR "Calling ping\n";
+							 exec_ping($rname, $rreturn, $msnr);
+						}
+					} else { 
+						print STDERR "Doing nothing, client good bye!\n"; 
+					}
 					
 					if ($guest->connected) {
 						print $guest "$guest_line received. Good bye.\n";
@@ -296,9 +299,6 @@ sub start_listening
 					$guest_line = undef;
 					$in_list->remove($guest);
 					$guest->close;
-					
-					
-					
 				}
 			}
 		}
