@@ -1,0 +1,3 @@
+%loxberry ALL = NOPASSWD: REPLACEINSTALLFOLDER/webfrontend/htmlauth/plugins/REPLACEFOLDERNAME/bin/tcp2shell2.pl
+%loxberry ALL = NOPASSWD: REPLACEINSTALLFOLDER/webfrontend/htmlauth/plugins/REPLACEFOLDERNAME/bin/restart_tcp2shell.sh
+%loxberry ALL = NOPASSWD: /usr/bin/killall

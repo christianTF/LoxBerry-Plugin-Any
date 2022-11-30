@@ -1,42 +1,21 @@
 #!/usr/bin/perl
-
-if (-d "REPLACEINSTALLFOLDER/webfrontend/cgi/plugins/anyplugin/perllib") {
-	use lib 'REPLACEINSTALLFOLDER/webfrontend/cgi/plugins/anyplugin/perllib';
-} else {
-	use lib "/opt/loxberry/webfrontend/cgi/plugins/anyplugin/perllib";
-}
-
+use strict;
+use warnings;
 use LoxBerry::System;
 use LoxBerry::Web;
-
-
-if (-d "REPLACEINSTALLFOLDER/webfrontend/cgi/plugins/anyplugin/lib") {
-	use lib 'REPLACEINSTALLFOLDER/webfrontend/cgi/plugins/anyplugin/lib';
-} else {
-	use lib '/opt/loxberry/webfrontend/cgi/plugins/anyplugin/lib';
-}
 
 # Version of this script
 our $version = LoxBerry::System::pluginversion();
 
-# Christian Fenzl, christiantf@gmx.at 2017-2018
+# Christian Fenzl, christiantf@gmx.at 2017-2022
 # This script is a TCP to Shell gateway. 
 
 # Debian Packages required
-# - libswitch-perl
 # - libio-socket-timeout-perl
 
 ##########################################################################
 # Modules
 ##########################################################################
-
-use Basics;
-use strict;
-use warnings;
-
-
-# use FindBin;
-# use lib "$FindBin::RealBin/../perllib";
 
 use Config::Simple;
 use Cwd 'abs_path';
@@ -53,7 +32,6 @@ use IO::Interface qw(:flags);
 use List::Util 1.33 'any';
 use LWP::UserAgent;
 use POSIX qw/ strftime /;
-use Switch;
 use Time::HiRes qw(usleep);
 use URI::Escape;
 # use TCPUDP;
@@ -62,18 +40,16 @@ use URI::Escape;
 print STDERR "###################### Any-Plugin V$version ######################\n";
 print STDERR "Global variables from LoxBerry::System\n";
 print STDERR "Homedir:     $lbhomedir\n";
-print STDERR "Plugindir:   $lbplugindir\n";
-print STDERR "YOUR commands:      $lbdatadir/commands\n";
-#print STDERR "HTMLdir:     $lbhtmldir\n";
-#print STDERR "Templatedir: $lbtemplatedir\n";
-#print STDERR "Datadir:     $lbdatadir\n";
-#print STDERR "Logdir:      $lblogdir\n";
-#print STDERR "Configdir:   $lbconfigdir\n";
+print STDERR "Plugindir:   $lbpplugindir\n";
+print STDERR "YOUR commands:      $lbpdatadir/commands\n";
+#print STDERR "HTMLdir:     $lbphtmldir\n";
+#print STDERR "Templatedir: $lbptemplatedir\n";
+#print STDERR "Datadir:     $lbpdatadir\n";
+#print STDERR "Logdir:      $lbplogdir\n";
+#print STDERR "Configdir:   $lbpconfigdir\n";
 
 my $curruser = $ENV{LOGNAME} || $ENV{USER} || getpwuid($<);
 print STDERR "Running user is $curruser\n";
-
-
 
 my $home = $lbhomedir;
 our $tcpin_sock;
@@ -98,7 +74,7 @@ GetOptions('activate' => \$option_activate) or die "Usage: $0 --activate to over
 
 # Load Configuration from config file
 # Read plugin settings
-my $cfgfilename = "$lbconfigdir/$lbplugindir.cfg";
+my $cfgfilename = "$lbpconfigdir/$lbpplugindir.cfg";
 # tolog("INFORMATION", "Reading Plugin config $cfg");
 if (! (-e $cfgfilename)) {
 	print STDERR "Any-Plugin configuration file does not exist. Terminating.\n";
@@ -252,33 +228,33 @@ sub start_listening
 					## Get first parameter (<Name> or keyword)
 					my $rname_temp = $guest_params[0];
 					my $rname;
-					switch(lc $rname_temp) {
-						case 'status' {	print STDERR "1. Parameter is STATUS\n"; }
-						else		  { print STDERR "1. Parameter (Name) is $rname_temp\n"; 
-										$rname = $rname_temp;}
+					if(lc $rname_temp eq 'status') {
+						print STDERR "1. Parameter is STATUS\n"; 
+					} else { 
+						print STDERR "1. Parameter (Name) is $rname_temp\n"; 
+						$rname = $rname_temp;}
 					}
 
 					## Get second parameter (return method)
 					my ($rreturn, $msnr) = split /\./, lc $guest_params[1], 2;
 					
-					switch ($rreturn) {
-						case 'off'	{ print STDERR "2. Parameter is off (nothing will be returned)\n"; }
-						case 'rc'	{ print STDERR "2. Parameter is rc (will return exit code)\n"; }
-						case 'udp'	{ print STDERR "2. Parameter is udp (will return udp string)\n"; }
-						case 'rcudp'{ print STDERR "2. Parameter is rcudp (will return exit code and udp string)\n"; }
-						else		{ print STDERR "2. Parameter undefined - set to rc\n";
-											$rreturn = "off";
-										}
-							}
+					if( $rreturn eq 'off') { print STDERR "2. Parameter is off (nothing will be returned)\n"; }
+					elsif ($rreturn eq 'rc') { print STDERR "2. Parameter is rc (will return exit code)\n"; }
+					elsif ($rreturn eq 'udp') { print STDERR "2. Parameter is udp (will return udp string)\n"; }
+					elsif ($rreturn eq 'rcudp') { print STDERR "2. Parameter is rcudp (will return exit code and udp string)\n"; }
+					else { 
+						print STDERR "2. Parameter undefined - set to rc\n";
+						$rreturn = "off";
+					}
 					
 					## Get third parameter (command or macro)
 					my $rcommand = lc $guest_params[2]; 
-					switch ($rcommand) {
-						case 'command'	{ print STDERR "3. Parameter is command (will run following command)\n"; }
-						case 'macro'	{ print STDERR "3. Parameter is macro (will run macro $guest_params[3])\n"; }
-						case 'ping'		{ print STDERR "3. Parameter is ping (will return Linux epoch time)\n"; }
-						else			{ print STDERR "3. Parameter is undefined - QUITTING guest\n";
-											$rcommand = undef;}
+					if($rcommand eq 'command') { print STDERR "3. Parameter is command (will run following command)\n"; }
+					elsif($rcommand eq 'macro')	{ print STDERR "3. Parameter is macro (will run macro $guest_params[3])\n"; }
+					elsif($rcommand eq 'ping') { print STDERR "3. Parameter is ping (will return Linux epoch time)\n"; }
+					else { 
+						print STDERR "3. Parameter is undefined - QUITTING guest\n";
+						$rcommand = undef;
 					}
 				
 					## Check the Miniserver number
@@ -431,7 +407,7 @@ sub executeCommandline
 sub executeShell {
   my ($commandline) = @_;
   
-  my $output = qx{cd $lbdatadir/commands; $commandline 2>&1};
+  my $output = qx{cd $lbpdatadir/commands; $commandline 2>&1};
   my $status = $? >> 8;
   # Negative exit code is returned as 16bit int --> correct this 
   $status = ($status & 0x80) ? -(0x100 - ($status & 0xFF)) : $status;

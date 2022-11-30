@@ -16,15 +16,13 @@
 ##########################################################################
 # Modules
 ##########################################################################
-use FindBin;
-use lib "$FindBin::Bin/./perllib";
 use LoxBerry::System;
 use LoxBerry::Web;
 
 # Version of this script
 our $version = LoxBerry::System::pluginversion();
 
-use Switch;
+# use Switch;
 use CGI::Carp qw(fatalsToBrowser);
 use CGI qw/:standard/;
 use Config::Simple;
@@ -78,13 +76,13 @@ our @backuptypes = ('DD', 'RSYNC', 'TGZ');
  print STDERR "========== LoxBerry Backup Version $version === ($datestring) =========\n";
  print STDERR "Global variables from LoxBerry::System\n";
  print STDERR "Homedir:     $lbhomedir\n";
- print STDERR "Plugindir:   $lbplugindir\n";
- print STDERR "CGIdir:      $lbcgidir\n";
- print STDERR "HTMLdir:     $lbhtmldir\n";
- print STDERR "Templatedir: $lbtemplatedir\n";
- print STDERR "Datadir:     $lbdatadir\n";
- print STDERR "Logdir:      $lblogdir\n";
- print STDERR "Configdir:   $lbconfigdir\n";
+ print STDERR "Plugindir:   $lbpplugindir\n";
+ print STDERR "HTMLAUTHdir: $lbphtmlauthdir\n";
+ print STDERR "HTMLdir:     $lbphtmldir\n";
+ print STDERR "Templatedir: $lbptemplatedir\n";
+ print STDERR "Datadir:     $lbpdatadir\n";
+ print STDERR "Logdir:      $lbplogdir\n";
+ print STDERR "Configdir:   $lbpconfigdir\n";
 
 # Start with HTML header
 print $cgi->header(
@@ -100,17 +98,17 @@ $lang = lblanguage();
 ##########################################################################
 
 # Read plugin config 
-# $pcfg 	= new Config::Simple("$lbconfigdir/anyplugin.cfg");
+# $pcfg 	= new Config::Simple("$lbpconfigdir/anyplugin.cfg");
 # if (! defined $pcfg) {
 	# $pcfg = new Config::Simple(syntax=>'ini');
 	# $pcfg->param("CONFIG.VERSION", $version);
-	# $pcfg->write("$lbconfigdir/anyplugin.cfg");
-	# $pcfg = new Config::Simple("$lbconfigdir/anyplugin.cfg");
+	# $pcfg->write("$lbpconfigdir/anyplugin.cfg");
+	# $pcfg = new Config::Simple("$lbpconfigdir/anyplugin.cfg");
 # }
 # Config::Simple->import_from('app.ini', \%Config);
 
 my %pcfg;
-tie %pcfg, "Config::Simple", "$lbconfigdir/anyplugin.cfg";
+tie %pcfg, "Config::Simple", "$lbpconfigdir/anyplugin.cfg";
 
 # Set default parameters
 my $pcfgchanged = 0;
@@ -142,9 +140,9 @@ if ($cgi->param("save")) {
 # See http://www.perlmonks.org/?node_id=65642
 
 # Main
-#$maintemplate = HTML::Template->new(filename => "$lbtemplatedir/multi/main.html");
+#$maintemplate = HTML::Template->new(filename => "$lbptemplatedir/multi/main.html");
 $maintemplate = HTML::Template->new(
-	filename => "$lbtemplatedir/multi/settings.html",
+	filename => "$lbptemplatedir/multi/settings.html",
 	global_vars => 1,
 	loop_context_vars => 1,
 	die_on_bad_params => 0,
@@ -166,11 +164,11 @@ $lang         = substr($lang,0,2);
 # Read Plugin transations
 # Read English language as default
 # Missing phrases in foreign language will fall back to English
-$languagefileplugin 	= "$lbtemplatedir/lang/language_en.ini";
+$languagefileplugin 	= "$lbptemplatedir/lang/language_en.ini";
 Config::Simple->import_from($languagefileplugin, \%TPhrases);
 
 # Read foreign language if exists and not English
-$languagefileplugin = "$lbtemplatedir/lang/language_$lang.ini";
+$languagefileplugin = "$lbptemplatedir/lang/language_$lang.ini";
 # Now overwrite phrase variables with user language
 if ((-e $languagefileplugin) and ($lang ne 'en')) {
 	Config::Simple->import_from($languagefileplugin, \%TPhrases);
@@ -259,7 +257,7 @@ my $allowed_remote_ips = textfield(-name=>'allowed_remote_ips',
 			   );
 $maintemplate->param( ALLOWED_REMOTE_IPS => $allowed_remote_ips);
 
-$maintemplate->param( LBPLUGINDIR => $lbplugindir);
+$maintemplate->param( LBPLUGINDIR => $lbpplugindir);
 		
 # Get currently running instances
 my $runningInstances = `pgrep --exact -c tcp2shell2.pl`;
@@ -269,13 +267,11 @@ $maintemplate->param( RUNNINGINSTANCES => $runningInstances);
 # Print Template
 ##########################################################################
 
-# In LoxBerry V0.2.x we use the old LoxBerry::Web header
 LoxBerry::Web::lbheader("Any Plugin for LoxBerry V$version", "http://www.loxwiki.eu:80/x/7wBmAQ");
 
 # Main
 print $maintemplate->output;
 
-# In LoxBerry V0.2.x we use the old LoxBerry::Web footer
 LoxBerry::Web::lbfooter();
 
 exit;
@@ -303,7 +299,7 @@ sub save
 	#if ( grep $_ eq $R::security_mode, ('unsecure', 'restricted') ) { $pcfg{'Main.security_mode'} = $R::security_mode;}
 	
 	tied(%pcfg)->write();
-	my $killscript = "sudo $lbcgidir/bin/restart_tcp2shell.sh  > /dev/null &";
+	my $killscript = "sudo $lbphtmlauthdir/bin/restart_tcp2shell.sh  > /dev/null &";
 	print STDERR "Killscript: $killscript\n";
 	system($killscript);
 		

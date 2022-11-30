@@ -8,35 +8,13 @@
 loxberryhome=REPLACEINSTALLFOLDER
 pluginname=REPLACEFOLDERNAME
 
-# Directory/Pluginname fallback for test environment
-if [ ! -d $loxberryhome ]; then
-	loxberryhome=/opt/loxberry
-fi
-if [ ! -d $pluginname ]; then
-	pluginname=anyplugin
-fi
-
 /usr/bin/logger "loxberry-plugin-$pluginname - DAEMON Script from Any Plugin"
 	
-# Add Any-Plugin to sudoers (need root permission)
-# Sudoers V2
-sudoversion=2
-
-if [ ! -e $loxberryhome/config/plugins/$pluginname/sudoers.v$sudoversion ]
-	then
-		/usr/bin/logger "loxberry-plugin-$pluginname - Adding sudoers permissions V$sudoversion"
-		echo %loxberry ALL = NOPASSWD: $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/tcp2shell2.pl > /etc/sudoers.d/$pluginname
-		echo %loxberry ALL = NOPASSWD: $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/restart_tcp2shell.sh >> /etc/sudoers.d/$pluginname
-		echo %loxberry ALL = NOPASSWD: /usr/bin/killall >> /etc/sudoers.d/$pluginname
-		chmod 0440 /etc/sudoers.d/$pluginname
-		rm $loxberryhome/config/plugins/$pluginname/sudoers.*
-		echo Sudoers V$sudoversion > $loxberryhome/config/plugins/$pluginname/sudoers.v$sudoversion
-fi
 
 # Change permissions
-if [ ! -x "$loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/kill_tcp2shell2.sh" ]; then
+if [ ! -x "$loxberryhome/webfrontend/htmlauth/plugins/$pluginname/bin/kill_tcp2shell2.sh" ]; then
 	/usr/bin/logger "loxberry-plugin-$pluginname - Setting kill_tcp2shell +x permissions"
-	chmod +x $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/restart_tcp2shell.sh
+	chmod +x $loxberryhome/webfrontend/htmlauth/plugins/$pluginname/bin/restart_tcp2shell.sh
 fi
 
 # Config file parsing (based on http://stackoverflow.com/a/20815951/3466839)
@@ -80,6 +58,6 @@ chmod -R 774 $loxberryhome/data/plugins/$pluginname/commands
 
 /usr/bin/logger "loxberry-plugin-$pluginname - Running tcp2shell with user $Mainrunas"
 # This is the new IPv4/v6 code
-sudo -n -u $Mainrunas -- $loxberryhome/webfrontend/cgi/plugins/$pluginname/bin/tcp2shell2.pl >>$loxberryhome/log/plugins/$pluginname/tcp2shell.log 2>&1 &
+sudo -n -u $Mainrunas -- $loxberryhome/webfrontend/htmlauth/plugins/$pluginname/bin/tcp2shell2.pl >>$loxberryhome/log/plugins/$pluginname/tcp2shell.log 2>&1 &
 chown loxberry:loxberry $loxberryhome/log/plugins/$pluginname/tcp2shell.log
 exit 0

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+PIDFILES=/run/shm/tcp2shell.*
+
+echo "Running killall..."
+sudo killall -e tcp2shell2.pl
+
+echo "Cleanup remaining pidfiles"
+rm -f $PIDFILES
